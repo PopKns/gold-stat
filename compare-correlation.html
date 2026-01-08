@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correlation Analysis - Gold Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">&#9672;</div>
+                <div class="sidebar-brand">
+                    <h1>Gold Analysis</h1>
+                    <p>Multi-Market Dashboard v4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">&#9654;</button>
+
+            <!-- Market Selector (disabled for compare) -->
+            <div class="market-selector-container">
+                <div class="market-selector-label">Comparing Both Markets</div>
+                <select class="market-selector" disabled>
+                    <option>XAUUSD vs GC1!</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="dashboard" href="index.html">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link active" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">Correlation Analysis</h2>
+                </div>
+                <div class="header-actions">
+                    <span class="header-date" id="headerDate"></span>
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span>Analyzing</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                    <div class="blur-circle blur-pink"></div>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="loader"></div>
+                    <p class="loading-text">Analyzing correlation...</p>
+                </div>
+
+                <div id="content" class="page-content hidden">
+                    <!-- Page Header -->
+                    <section class="page-header">
+                        <p class="page-subtitle">CORRELATION ANALYSIS</p>
+                        <h1 class="page-title"><span class="gradient">XAUUSD vs GC1!</span></h1>
+                        <p class="page-desc">Analyze the relationship between Gold Spot CFD and Gold Futures</p>
+                    </section>
+
+                    <!-- Correlation Score Cards -->
+                    <section class="section">
+                        <div class="corr-cards">
+                            <div class="corr-card">
+                                <div class="corr-value high" id="priceCorr">0.00</div>
+                                <div class="corr-bar">
+                                    <div class="corr-bar-fill high" id="priceCorrBar" style="width: 0%"></div>
+                                </div>
+                                <div class="corr-label">Price Correlation</div>
+                                <div class="corr-desc">How closely prices move together</div>
+                            </div>
+                            <div class="corr-card">
+                                <div class="corr-value high" id="dirMatch">0.0%</div>
+                                <div class="corr-bar">
+                                    <div class="corr-bar-fill high" id="dirMatchBar" style="width: 0%"></div>
+                                </div>
+                                <div class="corr-label">Direction Match</div>
+                                <div class="corr-desc">Days with same bullish/bearish direction</div>
+                            </div>
+                            <div class="corr-card">
+                                <div class="corr-value medium" id="typeMatch">0.0%</div>
+                                <div class="corr-bar">
+                                    <div class="corr-bar-fill medium" id="typeMatchBar" style="width: 0%"></div>
+                                </div>
+                                <div class="corr-label">Type Match</div>
+                                <div class="corr-desc">Days with exact same candle type</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Direction Agreement by Day -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Direction Agreement by Day of Week</h3>
+                        </div>
+                        <div class="glass-card">
+                            <div class="chart-container short"><canvas id="agreementChart"></canvas></div>
+                            <div class="insight-box">
+                                <span class="insight-icon">&#128161;</span>
+                                <p class="insight-text" id="agreementInsight">Loading...</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Price Change Scatter Plot -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Price Change Scatter Plot</h3>
+                        </div>
+                        <div class="glass-card">
+                            <div class="chart-container"><canvas id="scatterChart"></canvas></div>
+                            <div class="insight-box">
+                                <span class="insight-icon">&#128202;</span>
+                                <p class="insight-text" id="scatterInsight">Loading...</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Recent Divergences -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Recent Divergences (Last 30 Days)</h3>
+                        </div>
+                        <div class="glass-card">
+                            <div class="table-container">
+                                <table class="divergence-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>XAUUSD</th>
+                                            <th>GC1!</th>
+                                            <th>XAUUSD Direction</th>
+                                            <th>GC1! Direction</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="divergenceTableBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="insight-box">
+                                <span class="insight-icon">&#9888;</span>
+                                <p class="insight-text" id="divergenceInsight">Loading...</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Basis Over Time -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Futures Basis Over Time (Last 90 Days)</h3>
+                        </div>
+                        <div class="glass-card">
+                            <div class="chart-container short"><canvas id="basisChart"></canvas></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script src="compare-correlation.js"></script>
+</body>
+</html>

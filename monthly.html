@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Report - Gold Candle Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">&#9672;</div>
+                <div class="sidebar-brand">
+                    <h1>Gold Analysis</h1>
+                    <p>Multi-Market Dashboard v4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">&#9654;</button>
+
+            <!-- Market Selector -->
+            <div class="market-selector-container">
+                <div class="market-selector-label">Select Market</div>
+                <select class="market-selector" id="marketSelector">
+                    <option value="xauusd">XAUUSD (CFD)</option>
+                    <option value="gc1">GC1! (Futures)</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="dashboard" href="index.html">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link active" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9432;</span><span class="nav-text">Help</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">Monthly Report</h2>
+                </div>
+                <div class="header-actions">
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span>10 Years Data</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                    <div class="blur-circle blur-pink"></div>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="loader"></div>
+                    <p class="loading-text">Loading data...</p>
+                </div>
+
+                <div id="content" class="page-content hidden">
+                    <!-- Page Header -->
+                    <div class="page-header">
+                        <p class="page-subtitle">SEASONAL PATTERN ANALYSIS</p>
+                        <h1 class="page-title"><span class="gradient">Monthly</span> Report</h1>
+                        <p class="page-desc">Discover seasonal patterns and monthly performance trends over 10 years</p>
+                    </div>
+
+                    <!-- Stats Summary -->
+                    <div class="stats-grid">
+                        <div class="stat-card cyan">
+                            <p class="stat-value white" id="statTotalMonths">-</p>
+                            <p class="stat-label">Total Months</p>
+                        </div>
+                        <div class="stat-card green">
+                            <p class="stat-value green" id="statPositiveMonths">-</p>
+                            <p class="stat-label">Positive Months</p>
+                        </div>
+                        <div class="stat-card red">
+                            <p class="stat-value red" id="statNegativeMonths">-</p>
+                            <p class="stat-label">Negative Months</p>
+                        </div>
+                        <div class="stat-card orange">
+                            <p class="stat-value orange" id="statAvgMonthlyChange">-</p>
+                            <p class="stat-label">Avg Monthly Change</p>
+                        </div>
+                    </div>
+
+                    <!-- Best/Worst Month -->
+                    <section class="section">
+                        <div class="grid grid-2">
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <span class="card-title" style="color: var(--neon-green);">Best Month (Historically)</span>
+                                </div>
+                                <p style="font-size: 1.5rem; font-weight: 700; color: var(--neon-green);" id="bestMonthName">-</p>
+                                <p style="color: var(--text-muted); font-size: 0.875rem;" id="bestMonthStats">-</p>
+                            </div>
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <span class="card-title" style="color: var(--neon-red);">Worst Month (Historically)</span>
+                                </div>
+                                <p style="font-size: 1.5rem; font-weight: 700; color: var(--neon-red);" id="worstMonthName">-</p>
+                                <p style="color: var(--text-muted); font-size: 0.875rem;" id="worstMonthStats">-</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Seasonal Pattern -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Seasonal Pattern</h3>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                            Average monthly performance across 10 years of data
+                        </p>
+                        <div class="glass-card">
+                            <div id="seasonalBars">
+                                <!-- Generated by JavaScript -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Monthly Heatmap -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Monthly Performance Heatmap</h3>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                            Green = Positive month, Red = Negative month
+                        </p>
+                        <div class="glass-card" style="overflow-x: auto;">
+                            <div class="heatmap-container">
+                                <table class="heatmap-table" id="heatmapTable">
+                                    <!-- Generated by JavaScript -->
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Monthly Data Table -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Monthly Data</h3>
+                        </div>
+
+                        <div class="table-filters">
+                            <div class="filter-group">
+                                <span class="filter-label">Year:</span>
+                                <select class="filter-select" id="filterYear">
+                                    <option value="">All Years</option>
+                                </select>
+                            </div>
+                            <button class="filter-btn" id="exportBtn">Export CSV</button>
+                        </div>
+
+                        <div class="glass-card" style="padding: 0; overflow: hidden;">
+                            <div class="table-container">
+                                <table class="data-table" id="monthlyTable">
+                                    <thead>
+                                        <tr>
+                                            <th data-sort="key">Month</th>
+                                            <th data-sort="openPrice">Open</th>
+                                            <th data-sort="closePrice">Close</th>
+                                            <th data-sort="change">Change ($)</th>
+                                            <th data-sort="changePct">Change (%)</th>
+                                            <th data-sort="range">Range</th>
+                                            <th data-sort="bullish">Bull Days</th>
+                                            <th data-sort="bearish">Bear Days</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="paginationContainer"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script src="monthly.js"></script>
+</body>
+</html>

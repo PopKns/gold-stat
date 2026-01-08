@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Trading Plan - Gold Candle Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* Daily Plan Specific Styles */
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .plan-date {
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+        .plan-date span {
+            color: var(--neon-cyan);
+            font-weight: 600;
+        }
+
+        /* Open Price Card */
+        .open-price-card {
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .open-price-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .open-price-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--neon-cyan);
+        }
+
+        /* Pattern Cards */
+        .pattern-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+        .pattern-candle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0.75rem;
+            min-width: 80px;
+        }
+        .pattern-candle-label {
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+        .pattern-candle-name {
+            font-size: 0.6875rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 0.25rem;
+        }
+        .pattern-arrow {
+            font-size: 1.5rem;
+            color: var(--neon-purple);
+        }
+        .pattern-result {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(236, 72, 153, 0.2));
+            border: 2px solid var(--neon-purple);
+            padding: 1rem;
+            min-width: 100px;
+        }
+        .pattern-result .pattern-candle-label {
+            color: var(--neon-purple);
+            font-weight: 600;
+        }
+
+        /* Prediction Stats */
+        .prediction-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .pred-stat {
+            text-align: center;
+        }
+        .pred-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .pred-stat-value.purple { color: var(--neon-purple); }
+        .pred-stat-value.cyan { color: var(--neon-cyan); }
+        .pred-stat-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+
+        /* Candle Visualization */
+        .candle-viz {
+            position: relative;
+            padding: 2rem;
+            min-height: 400px;
+        }
+        .candle-viz-container {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 1rem;
+        }
+
+        /* Left: Predicted Prices */
+        .predicted-prices {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 160px;
+            text-align: right;
+        }
+        .predicted-price {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+        }
+        .predicted-price-info {
+            text-align: right;
+        }
+        .predicted-price-name {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+        .predicted-price-value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .predicted-price-line {
+            width: 40px;
+            height: 2px;
+            background: currentColor;
+        }
+        .predicted-price.high { color: var(--neon-purple); }
+        .predicted-price.close { color: var(--neon-cyan); }
+        .predicted-price.open { color: var(--text-primary); }
+        .predicted-price.low { color: var(--neon-orange); }
+
+        /* Center: Candle Drawing */
+        .candle-drawing {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 1rem;
+        }
+
+        /* Right: Trade Levels */
+        .trade-levels {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 180px;
+        }
+        .trade-level {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+        }
+        .trade-level-line {
+            width: 40px;
+            height: 2px;
+            background: currentColor;
+        }
+        .trade-level-info {
+            text-align: left;
+        }
+        .trade-level-name {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+        .trade-level-value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .trade-level.tp2 { color: var(--neon-green); }
+        .trade-level.tp1 { color: #22c55e; }
+        .trade-level.open { color: var(--text-primary); }
+        .trade-level.entry { color: var(--neon-cyan); }
+        .trade-level.sl { color: #ef4444; }
+
+        /* Section Labels */
+        .viz-section-label {
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+
+        /* Trade Setup Card */
+        .trade-setup {
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .trade-setup-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .trade-setup-header.buy {
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(34, 197, 94, 0.2));
+            border-bottom: 2px solid var(--neon-cyan);
+        }
+        .trade-setup-header.sell {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2));
+            border-bottom: 2px solid #ef4444;
+        }
+        .trade-type {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        .trade-type.buy { color: var(--neon-cyan); }
+        .trade-type.sell { color: #ef4444; }
+        .trade-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .trade-badge.buy {
+            background: rgba(0, 245, 255, 0.2);
+            color: var(--neon-cyan);
+        }
+        .trade-badge.sell {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .trade-setup-body {
+            padding: 1.5rem;
+        }
+        .trade-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .trade-row:last-child {
+            border-bottom: none;
+        }
+        .trade-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        .trade-value {
+            text-align: right;
+        }
+        .trade-price {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .trade-detail {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .trade-price.green { color: var(--neon-green); }
+        .trade-price.red { color: #ef4444; }
+        .trade-price.cyan { color: var(--neon-cyan); }
+
+        .trade-strategy {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(168, 85, 247, 0.1);
+            border-radius: 0.75rem;
+            border-left: 3px solid var(--neon-purple);
+        }
+        .trade-strategy-title {
+            font-size: 0.75rem;
+            color: var(--neon-purple);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .trade-strategy-text {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Summary Stats */
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        .summary-stat {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+        }
+        .summary-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .summary-stat-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Candle Type Info */
+        .candle-info-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        .candle-info-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            text-align: center;
+        }
+        .candle-info-label {
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+        .candle-info-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--neon-cyan);
+        }
+
+        /* Period Selector */
+        .period-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .period-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .period-select {
+            width: auto;
+            min-width: 120px;
+            padding: 0.5rem 2rem 0.5rem 0.75rem;
+            background: rgba(18, 18, 46, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2300f5ff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 0.875rem;
+        }
+        .period-select:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.2);
+        }
+        .period-info {
+            font-size: 0.6875rem;
+            color: var(--neon-purple);
+        }
+
+        @media (max-width: 768px) {
+            .candle-viz-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 2rem;
+            }
+            .predicted-prices-wrapper,
+            .trade-levels-wrapper {
+                width: 100%;
+            }
+            .predicted-prices {
+                flex-direction: row;
+                justify-content: space-around;
+                text-align: center;
+            }
+            .predicted-price {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            .predicted-price-line {
+                display: none;
+            }
+            .trade-levels {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-around;
+            }
+            .trade-level {
+                flex-direction: column;
+                gap: 0.25rem;
+                text-align: center;
+            }
+            .trade-level-line {
+                display: none;
+            }
+            .trade-level-info {
+                text-align: center;
+            }
+            .summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .candle-info-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .pattern-flow {
+                gap: 0.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">&#9672;</div>
+                <div class="sidebar-brand">
+                    <h1>Gold Analysis</h1>
+                    <p>Multi-Market Dashboard v4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">&#9654;</button>
+
+            <!-- Market Selector -->
+            <div class="market-selector-container">
+                <div class="market-selector-label">Select Market</div>
+                <select class="market-selector" id="marketSelector">
+                    <option value="xauusd">XAUUSD (CFD)</option>
+                    <option value="gc1">GC1! (Futures)</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="dashboard" href="index.html">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link active" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9432;</span><span class="nav-text">Help</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">Daily Trading Plan</h2>
+                </div>
+                <div class="header-actions">
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span id="headerDate">-</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                    <div class="blur-circle blur-pink"></div>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="loader"></div>
+                    <p class="loading-text">Analyzing patterns...</p>
+                </div>
+
+                <div id="content" class="page-content hidden">
+                    <!-- Page Header -->
+                    <div class="page-header">
+                        <p class="page-subtitle">PATTERN-BASED TRADING</p>
+                        <h1 class="page-title"><span class="gradient">Daily</span> Trading Plan</h1>
+                        <p class="page-desc">Auto-generated trade setup based on pattern prediction and historical data</p>
+                    </div>
+
+                    <!-- Top Section: Open Price + Pattern -->
+                    <div class="grid grid-2" style="margin-bottom: 1.5rem;">
+                        <!-- Today's Open Price + Mini Chart -->
+                        <div class="open-price-card">
+                            <div class="open-price-header">
+                                <div>
+                                    <p class="open-price-label">Today's Open Price</p>
+                                    <p class="open-price-value" id="openPrice">$-</p>
+                                </div>
+                                <div class="open-price-change">
+                                    <span id="priceChange">-</span>
+                                    <span id="priceChangePct">-</span>
+                                </div>
+                            </div>
+                            <div class="mini-chart-container">
+                                <div class="mini-chart" id="miniCandleChart">
+                                    <!-- Generated by JS -->
+                                </div>
+                                <div class="mini-chart-axis">
+                                    <span id="miniChartStart">-</span>
+                                    <span>Last 20 Candles</span>
+                                    <span id="miniChartEnd">-</span>
+                                </div>
+                            </div>
+                            <div class="mini-chart-stats">
+                                <div class="mini-stat">
+                                    <span class="mini-stat-dot bullish"></span>
+                                    <span>Bullish: <strong id="miniBullish">-</strong></span>
+                                </div>
+                                <div class="mini-stat">
+                                    <span class="mini-stat-dot bearish"></span>
+                                    <span>Bearish: <strong id="miniBearish">-</strong></span>
+                                </div>
+                                <div class="mini-stat">
+                                    <span>Avg Range: <strong id="miniAvgRange">-</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pattern Analysis -->
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">Pattern Analysis</span>
+                            </div>
+                            <div class="pattern-flow" id="patternFlow">
+                                <!-- Generated by JS -->
+                            </div>
+                            <div class="prediction-stats">
+                                <div class="pred-stat">
+                                    <p class="pred-stat-value purple" id="predProbability">-%</p>
+                                    <p class="pred-stat-label">Probability</p>
+                                </div>
+                                <div class="pred-stat">
+                                    <p class="pred-stat-value cyan" id="predSamples">-</p>
+                                    <p class="pred-stat-label">Samples</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Predicted Candle Visualization -->
+                    <section class="section">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">Predicted Candle & Price Levels</span>
+                                <div class="period-selector">
+                                    <label class="period-label">Period:</label>
+                                    <select class="period-select" id="predictionPeriodSelect">
+                                        <option value="365" selected>1 Year</option>
+                                        <option value="730">2 Years</option>
+                                        <option value="1095">3 Years</option>
+                                        <option value="1825">5 Years</option>
+                                        <option value="3650">10 Years</option>
+                                    </select>
+                                    <span class="period-info" id="predictionPeriodInfo">(365 days)</span>
+                                </div>
+                                <span class="card-badge" id="candleTypeBadge">-</span>
+                            </div>
+                            <div class="candle-viz">
+                                <div class="candle-viz-container">
+                                    <!-- Left: Predicted Prices -->
+                                    <div class="predicted-prices-wrapper">
+                                        <p class="viz-section-label">Predicted Prices</p>
+                                        <div class="predicted-prices" id="predictedPrices">
+                                            <!-- Generated by JS -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Center: Candle Drawing -->
+                                    <div class="candle-drawing" id="candleDrawing">
+                                        <!-- SVG generated by JS -->
+                                    </div>
+
+                                    <!-- Right: Trade Levels -->
+                                    <div class="trade-levels-wrapper">
+                                        <p class="viz-section-label">Trade Levels</p>
+                                        <div class="trade-levels" id="tradeLevels">
+                                            <!-- Generated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Candle Type Metrics -->
+                            <div class="candle-info-grid" id="candleMetrics">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Trade Setup -->
+                    <section class="section">
+                        <div class="glass-card trade-setup">
+                            <div class="trade-setup-header" id="tradeHeader">
+                                <span class="trade-type" id="tradeType">-</span>
+                                <span class="trade-badge" id="tradeBadge">-</span>
+                            </div>
+                            <div class="trade-setup-body">
+                                <div class="trade-row">
+                                    <span class="trade-label">Entry Zone</span>
+                                    <div class="trade-value">
+                                        <p class="trade-price cyan" id="entryZone">$- - $-</p>
+                                        <p class="trade-detail" id="entryDetail">-</p>
+                                    </div>
+                                </div>
+                                <div class="trade-row">
+                                    <span class="trade-label">Stop Loss</span>
+                                    <div class="trade-value">
+                                        <p class="trade-price red" id="stopLoss">$-</p>
+                                        <p class="trade-detail" id="slDetail">-</p>
+                                    </div>
+                                </div>
+                                <div class="trade-row">
+                                    <span class="trade-label">Take Profit 1</span>
+                                    <div class="trade-value">
+                                        <p class="trade-price green" id="takeProfit1">$-</p>
+                                        <p class="trade-detail" id="tp1Detail">-</p>
+                                    </div>
+                                </div>
+                                <div class="trade-row">
+                                    <span class="trade-label">Take Profit 2</span>
+                                    <div class="trade-value">
+                                        <p class="trade-price green" id="takeProfit2">$-</p>
+                                        <p class="trade-detail" id="tp2Detail">-</p>
+                                    </div>
+                                </div>
+
+                                <div class="trade-strategy">
+                                    <p class="trade-strategy-title">Strategy</p>
+                                    <p class="trade-strategy-text" id="strategyText">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Summary Stats -->
+                    <section class="section">
+                        <div class="summary-stats">
+                            <div class="summary-stat">
+                                <p class="summary-stat-value" style="color: var(--neon-green);" id="statWinRate">-%</p>
+                                <p class="summary-stat-label">Pattern Win Rate</p>
+                            </div>
+                            <div class="summary-stat">
+                                <p class="summary-stat-value" style="color: var(--neon-cyan);" id="statAvgRange">$-</p>
+                                <p class="summary-stat-label">Avg Daily Range</p>
+                            </div>
+                            <div class="summary-stat">
+                                <p class="summary-stat-value" style="color: var(--neon-purple);" id="statBullPct">-%</p>
+                                <p class="summary-stat-label">Bull Probability</p>
+                            </div>
+                            <div class="summary-stat">
+                                <p class="summary-stat-value" style="color: var(--neon-orange);" id="statBearPct">-%</p>
+                                <p class="summary-stat-label">Bear Probability</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Disclaimer -->
+                    <div style="text-align: center; padding: 1rem; color: var(--text-muted); font-size: 0.75rem;">
+                        <p>* This is auto-generated based on historical patterns. Not financial advice. Trade at your own risk.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script src="daily-plan.js"></script>
+</body>
+</html>

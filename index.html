@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Candle Analysis Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* Page-specific styles */
+        .hero-section {
+            text-align: center;
+            padding: 2rem 0 2.5rem;
+        }
+        .hero-subtitle {
+            color: var(--neon-cyan);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            margin-bottom: 0.75rem;
+        }
+        .hero-title {
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+        }
+        .hero-title .gradient {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-desc {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Pattern Selector */
+        .selector-group { margin-bottom: 1rem; }
+        .selector-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(18, 18, 46, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-size: 0.8125rem;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2300f5ff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+        select:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.2);
+        }
+        select option { background: var(--bg-secondary); }
+
+        /* Info Cards */
+        .info-card {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .info-card.purple {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(236, 72, 153, 0.15));
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .info-card.dark { background: rgba(18, 18, 46, 0.5); }
+        .info-value { font-size: clamp(1.125rem, 2vw, 1.5rem); font-weight: 700; }
+        .info-value.white { color: var(--text-primary); }
+        .info-value.cyan { color: var(--neon-cyan); }
+        .info-value.orange { color: var(--neon-orange); }
+        .info-label { font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.25rem; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+
+        /* Legend */
+        .legend { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 0.375rem; }
+        .legend-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; }
+        .legend-text { font-size: 0.6875rem; color: var(--text-muted); }
+
+        /* Icon colors */
+        .icon { font-size: 1rem; }
+        .icon.cyan { color: var(--neon-cyan); }
+        .icon.purple { color: var(--neon-purple); }
+        .icon.green { color: var(--neon-green); }
+
+        /* Card Badge */
+        .card-badge { font-size: 0.6875rem; color: var(--neon-purple); }
+
+        /* Distribution Header */
+        .dist-header { margin-bottom: 1rem; }
+        .dist-title { font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.25rem; }
+        .dist-subtitle { font-size: 0.8125rem; color: var(--text-muted); }
+
+        /* Grid 12 columns */
+        .grid-12 { grid-template-columns: repeat(12, 1fr); }
+        .col-3 { grid-column: span 3; }
+        .col-4 { grid-column: span 4; }
+        .col-5 { grid-column: span 5; }
+
+        /* Candle Type Cards */
+        .candle-types-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+        .candle-type-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .candle-type-card:hover { transform: translateY(-4px); background: var(--bg-card-hover); }
+        .candle-type-card.bullish { border-color: rgba(34, 197, 94, 0.3); }
+        .candle-type-card.bullish:hover { border-color: var(--neon-green); box-shadow: 0 0 20px rgba(34, 197, 94, 0.2); }
+        .candle-type-card.bearish { border-color: rgba(239, 68, 68, 0.3); }
+        .candle-type-card.bearish:hover { border-color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
+        .candle-visual { height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+        .candle-type-name { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
+        .candle-type-code { font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 1rem; }
+        .candle-metrics { text-align: left; font-size: 0.75rem; }
+        .metric-row { display: flex; justify-content: space-between; padding: 0.375rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { color: var(--text-muted); }
+        .metric-value { color: var(--text-primary); font-weight: 500; }
+        .candle-count { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .count-value { font-size: 1.25rem; font-weight: 700; }
+        .count-value.bullish { color: var(--neon-green); }
+        .count-value.bearish { color: #ef4444; }
+        .count-label { font-size: 0.6875rem; color: var(--text-muted); }
+
+        /* Period Selector */
+        .period-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .period-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .period-select {
+            width: auto;
+            min-width: 120px;
+            padding: 0.5rem 2rem 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.5rem;
+            background-color: rgba(18, 18, 46, 0.9);
+        }
+        .period-info {
+            font-size: 0.6875rem;
+            color: var(--neon-purple);
+            margin-left: 0.5rem;
+        }
+
+        @media (max-width: 1200px) { .candle-types-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 1024px) { .grid-12 { grid-template-columns: 1fr; } .col-3, .col-4, .col-5 { grid-column: span 1; } }
+        @media (max-width: 480px) { .candle-types-grid { grid-template-columns: 1fr; } .info-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">&#9672;</div>
+                <div class="sidebar-brand">
+                    <h1>Gold Analysis</h1>
+                    <p>Multi-Market Dashboard v4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">&#9654;</button>
+
+            <!-- Market Selector -->
+            <div class="market-selector-container">
+                <div class="market-selector-label">Select Market</div>
+                <select class="market-selector" id="marketSelector">
+                    <option value="xauusd">XAUUSD (CFD)</option>
+                    <option value="gc1">GC1! (Futures)</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="dashboard">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link active" href="#overview">
+                                <span class="submenu-dot"></span>
+                                <span>Overview</span>
+                            </a>
+                            <a class="submenu-link" href="#distance">
+                                <span class="submenu-dot"></span>
+                                <span>Distance Analysis</span>
+                            </a>
+                            <a class="submenu-link" href="#predictor">
+                                <span class="submenu-dot"></span>
+                                <span>Pattern Predictor</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="analytics">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Analytics</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="#candle-types">
+                                <span class="submenu-dot"></span>
+                                <span>Candle Types</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9432;</span><span class="nav-text">Help</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">Dashboard</h2>
+                </div>
+                <div class="header-actions">
+                    <span class="header-date" id="headerDate"></span>
+                    <div class="market-badge" id="marketBadge">XAUUSD</div>
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span>Live Data</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                    <div class="blur-circle blur-pink"></div>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="loader"></div>
+                    <p class="loading-text">Loading data...</p>
+                </div>
+
+                <div id="content" class="page-content hidden">
+                    <!-- Hero Section -->
+                    <section class="hero-section">
+                        <p class="hero-subtitle">10 YEARS HISTORICAL DATA</p>
+                        <h1 class="hero-title"><span class="gradient">Gold Candle</span> Analysis</h1>
+                        <p class="hero-desc">Advanced candlestick pattern analysis and prediction based on historical XAUUSD data</p>
+
+                        <div class="stats-grid">
+                            <div class="stat-card purple">
+                                <p class="stat-value purple" id="statBasis">-</p>
+                                <p class="stat-label">Futures Basis</p>
+                            </div>
+                            <div class="stat-card orange">
+                                <p class="stat-value gold" id="statLatestPrice">-</p>
+                                <p class="stat-label">Latest Price</p>
+                            </div>
+                            <div class="stat-card green">
+                                <p class="stat-value green" id="stat10YChange">-</p>
+                                <p class="stat-label">10Y Change</p>
+                            </div>
+                            <div class="stat-card cyan">
+                                <p class="stat-value white" id="statDateRange">-</p>
+                                <p class="stat-label">Years of Data</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Market Overview -->
+                    <section id="overview" class="section">
+                        <div class="section-header"><h3 class="section-title">Market Overview</h3></div>
+                        <div class="grid grid-2">
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <span class="card-title">Overall Market Sentiment</span>
+                                    <div class="legend">
+                                        <div class="legend-item"><div class="legend-dot" style="background: var(--neon-cyan)"></div><span class="legend-text">Bullish</span></div>
+                                        <div class="legend-item"><div class="legend-dot" style="background: var(--neon-green)"></div><span class="legend-text">Bearish</span></div>
+                                    </div>
+                                </div>
+                                <div class="chart-container"><canvas id="sentimentChart"></canvas></div>
+                            </div>
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <span class="card-title">Candle Type Distribution</span>
+                                    <span class="card-badge">8 Types</span>
+                                </div>
+                                <div class="chart-container"><canvas id="typeDistributionChart"></canvas></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Distance Analysis -->
+                    <section id="distance" class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Average Distance by Type</h3>
+                            <div class="period-selector">
+                                <label class="period-label">Period:</label>
+                                <select class="period-select" id="distancePeriodSelect">
+                                    <option value="365" selected>1 Year</option>
+                                    <option value="730">2 Years</option>
+                                    <option value="1095">3 Years</option>
+                                    <option value="1825">5 Years</option>
+                                    <option value="3650">10 Years</option>
+                                </select>
+                                <span class="period-info" id="distancePeriodInfo">(365 days)</span>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <div class="legend">
+                                    <div class="legend-item"><div class="legend-dot" style="background: #3b82f6"></div><span class="legend-text">high_open_dist</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: #a855f7"></div><span class="legend-text">upper_wick</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: #9ca3af"></div><span class="legend-text">body_size</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: #fbbf24"></div><span class="legend-text">lower_wick</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: #f97316"></div><span class="legend-text">open_low_dist</span></div>
+                                </div>
+                            </div>
+                            <div class="chart-container short"><canvas id="avgDistanceChart"></canvas></div>
+                        </div>
+                    </section>
+
+                    <!-- Pattern Predictor -->
+                    <section id="predictor" class="section">
+                        <div class="section-header"><h3 class="section-title">Pattern Predictor</h3></div>
+                        <div class="grid grid-12" style="margin-bottom: 1.25rem;">
+                            <div class="col-3 glass-card">
+                                <div class="card-header"><span class="card-title"><span class="icon cyan">&#9881;</span> Pattern Selector</span></div>
+                                <div class="selector-group">
+                                    <label class="selector-label">Previous Candle 1</label>
+                                    <select id="prevCandle1"><option value="">-- All --</option></select>
+                                </div>
+                                <div class="selector-group">
+                                    <label class="selector-label">Previous Candle 2</label>
+                                    <select id="prevCandle2"><option value="">-- All --</option></select>
+                                </div>
+                                <div class="selector-group">
+                                    <label class="selector-label">Previous Candle 3</label>
+                                    <select id="prevCandle3"><option value="">-- All --</option></select>
+                                </div>
+                            </div>
+                            <div class="col-4 glass-card">
+                                <div class="card-header"><span class="card-title"><span class="icon purple">&#9733;</span> Most Likely Next Candle</span></div>
+                                <div class="info-card purple">
+                                    <p class="info-value white" id="topCandleName">-</p>
+                                    <p class="info-label">Top Next Candle Name</p>
+                                </div>
+                                <div class="info-grid">
+                                    <div class="info-card dark"><p class="info-value cyan" id="topCandlePercent">0.00%</p><p class="info-label">Probability</p></div>
+                                    <div class="info-card dark"><p class="info-value orange" id="totalPatternCount">0</p><p class="info-label">Samples</p></div>
+                                </div>
+                            </div>
+                            <div class="col-5 glass-card">
+                                <div class="card-header"><span class="card-title"><span class="icon green">&#9650;</span> Bull/Bear Distribution</span></div>
+                                <div class="chart-container short"><canvas id="bullBearPieChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="dist-header">
+                                <p class="dist-title" id="distributionTitle">Next Candle Type Distribution</p>
+                                <p class="dist-subtitle" id="distributionSubtitle">Samples: 0 | Top: -</p>
+                            </div>
+                            <div class="chart-container short"><canvas id="nextCandleDistChart"></canvas></div>
+                        </div>
+                    </section>
+
+                    <!-- Candle Types Analysis -->
+                    <section id="candle-types" class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Candle Types Analysis</h3>
+                            <div class="period-selector">
+                                <label class="period-label">Period:</label>
+                                <select class="period-select" id="candleTypesPeriodSelect">
+                                    <option value="365" selected>1 Year</option>
+                                    <option value="730">2 Years</option>
+                                    <option value="1095">3 Years</option>
+                                    <option value="1825">5 Years</option>
+                                    <option value="3650">10 Years</option>
+                                </select>
+                                <span class="period-info" id="candleTypesPeriodInfo">(365 days)</span>
+                            </div>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">8 candlestick patterns classified by body ratio and wick characteristics</p>
+                        <div class="candle-types-grid" id="candleTypesGrid"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

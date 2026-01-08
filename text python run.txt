@@ -1,0 +1,5 @@
+  # ลบแท่งล่าสุดถ้าเป็นวันนี้ (default)
+  python tradingview_10years.py --symbols all
+
+  # บังคับเก็บแท่งล่าสุด (สำหรับ debug)
+  python tradingview_10years.py --symbols all --include-today

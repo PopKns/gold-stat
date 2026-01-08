@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Side-by-Side Comparison - Gold Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">&#9672;</div>
+                <div class="sidebar-brand">
+                    <h1>Gold Analysis</h1>
+                    <p>Multi-Market Dashboard v4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">&#9654;</button>
+
+            <!-- Market Selector (disabled for compare) -->
+            <div class="market-selector-container">
+                <div class="market-selector-label">Comparing Both Markets</div>
+                <select class="market-selector" disabled>
+                    <option>XAUUSD vs GC1!</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="dashboard" href="index.html">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link active" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">Side-by-Side Comparison</h2>
+                </div>
+                <div class="header-actions">
+                    <span class="header-date" id="headerDate"></span>
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span>Comparing</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                    <div class="blur-circle blur-pink"></div>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="loader"></div>
+                    <p class="loading-text">Loading both markets data...</p>
+                </div>
+
+                <div id="content" class="page-content hidden">
+                    <!-- Page Header -->
+                    <section class="page-header">
+                        <p class="page-subtitle">MARKET COMPARISON</p>
+                        <h1 class="page-title"><span class="gradient">XAUUSD vs GC1!</span></h1>
+                        <p class="page-desc">Compare Gold Spot CFD with Gold Futures side by side</p>
+                    </section>
+
+                    <!-- Price Cards -->
+                    <section class="section">
+                        <div class="compare-grid">
+                            <!-- XAUUSD Card -->
+                            <div class="compare-card xauusd">
+                                <div class="compare-header">
+                                    <div class="compare-symbol">
+                                        <div class="compare-icon xauusd">&#9733;</div>
+                                        <div class="compare-name">
+                                            <h3>XAUUSD</h3>
+                                            <p>Gold Spot CFD (OANDA)</p>
+                                        </div>
+                                    </div>
+                                    <div class="compare-price">
+                                        <div class="compare-price-value xauusd" id="xauusdPrice">$0.00</div>
+                                        <div class="compare-price-change" id="xauusdChange">-</div>
+                                    </div>
+                                </div>
+                                <div class="candle-compare">
+                                    <div class="candle-visual">
+                                        <svg class="candle-svg" id="xauusdCandle" viewBox="0 0 60 120"></svg>
+                                        <div class="candle-label">Today's Candle</div>
+                                        <div class="candle-type-name" id="xauusdCandleType">-</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- GC1! Card -->
+                            <div class="compare-card gc1">
+                                <div class="compare-header">
+                                    <div class="compare-symbol">
+                                        <div class="compare-icon gc1">&#9733;</div>
+                                        <div class="compare-name">
+                                            <h3>GC1!</h3>
+                                            <p>Gold Futures (COMEX)</p>
+                                        </div>
+                                    </div>
+                                    <div class="compare-price">
+                                        <div class="compare-price-value gc1" id="gc1Price">$0.00</div>
+                                        <div class="compare-price-change" id="gc1Change">-</div>
+                                    </div>
+                                </div>
+                                <div class="candle-compare">
+                                    <div class="candle-visual">
+                                        <svg class="candle-svg" id="gc1Candle" viewBox="0 0 60 120"></svg>
+                                        <div class="candle-label">Today's Candle</div>
+                                        <div class="candle-type-name" id="gc1CandleType">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Basis Banner -->
+                        <div class="spread-banner">
+                            <div class="spread-item">
+                                <div class="spread-label">Futures Basis</div>
+                                <div class="spread-value" id="priceBasis">$0.00</div>
+                            </div>
+                            <div class="spread-item">
+                                <div class="spread-label">Basis %</div>
+                                <div class="spread-value" id="basisPct">0.00%</div>
+                            </div>
+                            <div class="spread-item">
+                                <div class="spread-label">Type Match</div>
+                                <div class="spread-value" id="typeMatchToday">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Type Match Warning -->
+                        <div class="type-match-warning" id="typeMatchWarning" style="display: none;">
+                            <span>&#9888;</span>
+                            <span id="typeMatchMessage">-</span>
+                        </div>
+                    </section>
+
+                    <!-- Statistics Comparison -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">10-Year Statistics Comparison</h3>
+                        </div>
+                        <div class="glass-card">
+                            <div class="table-container">
+                                <table class="stats-compare-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th style="text-align: center; color: var(--neon-cyan);">XAUUSD (CFD)</th>
+                                            <th style="text-align: center; color: var(--neon-yellow);">GC1! (Futures)</th>
+                                            <th style="text-align: center;">Difference</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="statsTableBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="insight-box">
+                                <span class="insight-icon">&#128161;</span>
+                                <p class="insight-text" id="statsInsight">Loading insights...</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Candle Type Distribution Comparison -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Candle Type Distribution Comparison</h3>
+                        </div>
+                        <div class="glass-card">
+                            <div class="chart-container"><canvas id="typeCompareChart"></canvas></div>
+                        </div>
+                    </section>
+
+                    <!-- Day of Week Comparison -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Day of Week Comparison</h3>
+                        </div>
+                        <div class="glass-card">
+                            <div class="chart-container short"><canvas id="dowCompareChart"></canvas></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script src="compare-side-by-side.js"></script>
+</body>
+</html>
