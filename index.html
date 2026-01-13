@@ -168,6 +168,114 @@
             margin-left: 0.5rem;
         }
 
+        /* Price Chart Section */
+        .price-chart-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .price-chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.25rem;
+        }
+        .price-info {
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+        }
+        .current-price-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+        .current-price-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .price-change-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+        }
+        .price-change-badge.positive {
+            background: rgba(40, 199, 111, 0.15);
+            color: var(--neon-green);
+        }
+        .price-change-badge.negative {
+            background: rgba(255, 76, 81, 0.15);
+            color: var(--neon-red);
+        }
+        .chart-stats-row {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.8125rem;
+        }
+        .chart-stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+        .chart-stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .chart-stat-dot.bullish { background: var(--neon-green); }
+        .chart-stat-dot.bearish { background: var(--neon-red); }
+
+        /* Full Width Mini Chart */
+        .full-mini-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 3px;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            min-height: 180px;
+            margin-bottom: 0.75rem;
+        }
+        .full-mini-candle {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .full-mini-candle-wick {
+            position: absolute;
+            width: 1px;
+        }
+        .full-mini-candle-body {
+            position: absolute;
+            width: 6px;
+            border-radius: 1px;
+        }
+        .full-mini-candle.bullish .full-mini-candle-wick,
+        .full-mini-candle.bullish .full-mini-candle-body {
+            background: var(--neon-green);
+        }
+        .full-mini-candle.bearish .full-mini-candle-wick,
+        .full-mini-candle.bearish .full-mini-candle-body {
+            background: var(--neon-red);
+        }
+        .full-mini-candle.current .full-mini-candle-body {
+            box-shadow: 0 0 10px currentColor;
+        }
+        .chart-axis {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+
         @media (max-width: 1200px) { .candle-types-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 1024px) { .grid-12 { grid-template-columns: 1fr; } .col-3, .col-4, .col-5 { grid-column: span 1; } }
         @media (max-width: 480px) { .candle-types-grid { grid-template-columns: 1fr; } .info-grid { grid-template-columns: 1fr; } }
@@ -374,6 +482,84 @@
                         </div>
                     </section>
 
+                    <!-- Price Chart Section -->
+                    <section class="price-chart-section">
+                        <div class="price-chart-header">
+                            <div>
+                                <p class="current-price-label">Current Price</p>
+                                <div class="price-info">
+                                    <span class="current-price-value" id="currentPriceValue">$-</span>
+                                    <span class="price-change-badge" id="priceChangeBadge">-</span>
+                                </div>
+                            </div>
+                            <div class="chart-stats-row">
+                                <div class="chart-stat-item">
+                                    <span class="chart-stat-dot bullish"></span>
+                                    <span>Bullish: <strong id="chartBullish">-</strong></span>
+                                </div>
+                                <div class="chart-stat-item">
+                                    <span class="chart-stat-dot bearish"></span>
+                                    <span>Bearish: <strong id="chartBearish">-</strong></span>
+                                </div>
+                                <div class="chart-stat-item">
+                                    <span>Avg Range: <strong id="chartAvgRange">-</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="full-mini-chart" id="fullMiniChart">
+                            <!-- Generated by JS -->
+                        </div>
+                        <div class="chart-axis">
+                            <span id="chartStartDate">-</span>
+                            <span>Last 50 Candles</span>
+                            <span id="chartEndDate">-</span>
+                        </div>
+                    </section>
+
+                    <!-- Pattern Predictor -->
+                    <section id="predictor" class="section">
+                        <div class="section-header"><h3 class="section-title">Pattern Predictor</h3></div>
+                        <div class="grid grid-12" style="margin-bottom: 1.25rem;">
+                            <div class="col-3 glass-card">
+                                <div class="card-header"><span class="card-title"><span class="icon cyan">&#9881;</span> Pattern Selector</span></div>
+                                <div class="selector-group">
+                                    <label class="selector-label">Previous Candle 1</label>
+                                    <select id="prevCandle1"><option value="">-- All --</option></select>
+                                </div>
+                                <div class="selector-group">
+                                    <label class="selector-label">Previous Candle 2</label>
+                                    <select id="prevCandle2"><option value="">-- All --</option></select>
+                                </div>
+                                <div class="selector-group">
+                                    <label class="selector-label">Previous Candle 3</label>
+                                    <select id="prevCandle3"><option value="">-- All --</option></select>
+                                </div>
+                            </div>
+                            <div class="col-4 glass-card">
+                                <div class="card-header"><span class="card-title"><span class="icon purple">&#9733;</span> Most Likely Next Candle</span></div>
+                                <div class="info-card purple">
+                                    <p class="info-value white" id="topCandleName">-</p>
+                                    <p class="info-label">Top Next Candle Name</p>
+                                </div>
+                                <div class="info-grid">
+                                    <div class="info-card dark"><p class="info-value cyan" id="topCandlePercent">0.00%</p><p class="info-label">Probability</p></div>
+                                    <div class="info-card dark"><p class="info-value orange" id="totalPatternCount">0</p><p class="info-label">Samples</p></div>
+                                </div>
+                            </div>
+                            <div class="col-5 glass-card">
+                                <div class="card-header"><span class="card-title"><span class="icon green">&#9650;</span> Bull/Bear Distribution</span></div>
+                                <div class="chart-container short"><canvas id="bullBearPieChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="dist-header">
+                                <p class="dist-title" id="distributionTitle">Next Candle Type Distribution</p>
+                                <p class="dist-subtitle" id="distributionSubtitle">Samples: 0 | Top: -</p>
+                            </div>
+                            <div class="chart-container short"><canvas id="nextCandleDistChart"></canvas></div>
+                        </div>
+                    </section>
+
                     <!-- Market Overview -->
                     <section id="overview" class="section">
                         <div class="section-header"><h3 class="section-title">Market Overview</h3></div>
@@ -425,50 +611,6 @@
                                 </div>
                             </div>
                             <div class="chart-container short"><canvas id="avgDistanceChart"></canvas></div>
-                        </div>
-                    </section>
-
-                    <!-- Pattern Predictor -->
-                    <section id="predictor" class="section">
-                        <div class="section-header"><h3 class="section-title">Pattern Predictor</h3></div>
-                        <div class="grid grid-12" style="margin-bottom: 1.25rem;">
-                            <div class="col-3 glass-card">
-                                <div class="card-header"><span class="card-title"><span class="icon cyan">&#9881;</span> Pattern Selector</span></div>
-                                <div class="selector-group">
-                                    <label class="selector-label">Previous Candle 1</label>
-                                    <select id="prevCandle1"><option value="">-- All --</option></select>
-                                </div>
-                                <div class="selector-group">
-                                    <label class="selector-label">Previous Candle 2</label>
-                                    <select id="prevCandle2"><option value="">-- All --</option></select>
-                                </div>
-                                <div class="selector-group">
-                                    <label class="selector-label">Previous Candle 3</label>
-                                    <select id="prevCandle3"><option value="">-- All --</option></select>
-                                </div>
-                            </div>
-                            <div class="col-4 glass-card">
-                                <div class="card-header"><span class="card-title"><span class="icon purple">&#9733;</span> Most Likely Next Candle</span></div>
-                                <div class="info-card purple">
-                                    <p class="info-value white" id="topCandleName">-</p>
-                                    <p class="info-label">Top Next Candle Name</p>
-                                </div>
-                                <div class="info-grid">
-                                    <div class="info-card dark"><p class="info-value cyan" id="topCandlePercent">0.00%</p><p class="info-label">Probability</p></div>
-                                    <div class="info-card dark"><p class="info-value orange" id="totalPatternCount">0</p><p class="info-label">Samples</p></div>
-                                </div>
-                            </div>
-                            <div class="col-5 glass-card">
-                                <div class="card-header"><span class="card-title"><span class="icon green">&#9650;</span> Bull/Bear Distribution</span></div>
-                                <div class="chart-container short"><canvas id="bullBearPieChart"></canvas></div>
-                            </div>
-                        </div>
-                        <div class="glass-card">
-                            <div class="dist-header">
-                                <p class="dist-title" id="distributionTitle">Next Candle Type Distribution</p>
-                                <p class="dist-subtitle" id="distributionSubtitle">Samples: 0 | Top: -</p>
-                            </div>
-                            <div class="chart-container short"><canvas id="nextCandleDistChart"></canvas></div>
                         </div>
                     </section>
 

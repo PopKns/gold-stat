@@ -17,33 +17,34 @@ const CANDLE_TYPES = {
     7: 'Long Wick Bearish'
 };
 
-// Modern Neon Color scheme
+// Professional Purple Color scheme
 const COLORS = {
     neon: {
-        cyan: '#00f5ff',
-        purple: '#a855f7',
-        pink: '#ec4899',
-        orange: '#f97316',
-        green: '#22c55e',
-        yellow: '#fbbf24',
-        blue: '#3b82f6',
-        red: '#ef4444'
+        cyan: '#7367F0',
+        purple: '#7367F0',
+        pink: '#E859A3',
+        orange: '#FF9F43',
+        green: '#28C76F',
+        yellow: '#FFCA2C',
+        blue: '#5A8DEE',
+        red: '#FF4C51'
     },
-    bullish: 'rgba(0, 245, 255, 0.8)',      // Neon Cyan
-    bearish: 'rgba(34, 197, 94, 0.8)',       // Neon Green
+    primary: '#7367F0',
+    bullish: 'rgba(40, 199, 111, 0.8)',      // Success Green
+    bearish: 'rgba(255, 76, 81, 0.8)',       // Danger Red
     types: [
-        'rgba(0, 245, 255, 0.8)',    // 0: Doji Bullish - Cyan
-        'rgba(34, 197, 94, 0.8)',    // 1: Doji Bearish - Green
-        'rgba(59, 130, 246, 0.8)',   // 2: Full Body Bullish - Blue
+        'rgba(115, 103, 240, 0.8)',  // 0: Doji Bullish - Primary
+        'rgba(40, 199, 111, 0.8)',   // 1: Doji Bearish - Green
+        'rgba(90, 141, 238, 0.8)',   // 2: Full Body Bullish - Blue
         'rgba(16, 185, 129, 0.8)',   // 3: Full Body Bearish - Emerald
-        'rgba(168, 85, 247, 0.8)',   // 4: Normal Candle Bullish - Purple
-        'rgba(249, 115, 22, 0.8)',   // 5: Normal Candle Bearish - Orange
-        'rgba(236, 72, 153, 0.8)',   // 6: Long Wick Bullish - Pink
-        'rgba(251, 191, 36, 0.8)'    // 7: Long Wick Bearish - Yellow
+        'rgba(143, 133, 243, 0.8)', // 4: Normal Candle Bullish - Light Purple
+        'rgba(255, 159, 67, 0.8)',   // 5: Normal Candle Bearish - Orange
+        'rgba(232, 89, 163, 0.8)',   // 6: Long Wick Bullish - Pink
+        'rgba(255, 202, 44, 0.8)'    // 7: Long Wick Bearish - Yellow
     ],
     typesBorder: [
-        '#00f5ff', '#22c55e', '#3b82f6', '#10b981',
-        '#a855f7', '#f97316', '#ec4899', '#fbbf24'
+        '#7367F0', '#28C76F', '#5A8DEE', '#10b981',
+        '#8F85F3', '#FF9F43', '#E859A3', '#FFCA2C'
     ],
     distanceMetrics: {
         high_open_dist: 'rgba(59, 130, 246, 0.8)',

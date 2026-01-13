@@ -228,8 +228,8 @@ function renderTypeCompareChart() {
                 {
                     label: 'XAUUSD (CFD)',
                     data: xauusdPcts,
-                    backgroundColor: 'rgba(0, 245, 255, 0.7)',
-                    borderColor: '#00f5ff',
+                    backgroundColor: 'rgba(115, 103, 240, 0.7)',
+                    borderColor: '#7367F0',
                     borderWidth: 1
                 },
                 {
@@ -298,8 +298,8 @@ function renderDOWCompareChart() {
                 {
                     label: 'XAUUSD Bullish %',
                     data: xauusdPcts,
-                    backgroundColor: 'rgba(0, 245, 255, 0.7)',
-                    borderColor: '#00f5ff',
+                    backgroundColor: 'rgba(115, 103, 240, 0.7)',
+                    borderColor: '#7367F0',
                     borderWidth: 1
                 },
                 {
