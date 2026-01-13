@@ -143,14 +143,15 @@ function calculateNextCandleDistribution(filteredData) {
         percentages[key] = total > 0 ? (counts[key] / total * 100) : 0;
     });
 
-    let topType = 0;
-    let topPercent = 0;
-    Object.keys(percentages).forEach(key => {
-        if (percentages[key] > topPercent) {
-            topPercent = percentages[key];
-            topType = parseInt(key);
-        }
-    });
+    // Sort by percentage to get Top 2
+    const sorted = Object.keys(percentages)
+        .map(key => ({ type: parseInt(key), percent: percentages[key] }))
+        .sort((a, b) => b.percent - a.percent);
+
+    const topType = sorted[0]?.type || 0;
+    const topPercent = sorted[0]?.percent || 0;
+    const secondType = sorted[1]?.type || 0;
+    const secondPercent = sorted[1]?.percent || 0;
 
     let bullish = 0, bearish = 0;
     Object.keys(counts).forEach(key => {
@@ -161,7 +162,12 @@ function calculateNextCandleDistribution(filteredData) {
     const bullPct = total > 0 ? (bullish / total * 100) : 0;
     const bearPct = total > 0 ? (bearish / total * 100) : 0;
 
-    return { counts, percentages, topType, topPercent, bullish, bearish, bullPct, bearPct, total };
+    return {
+        counts, percentages,
+        topType, topPercent,
+        secondType, secondPercent,
+        bullish, bearish, bullPct, bearPct, total
+    };
 }
 
 // ============================================
@@ -379,12 +385,21 @@ function renderPatternFlow(pattern, prediction) {
         `;
     }
 
-    // แสดงผลลัพธ์การทำนาย
+    // แสดง Top 2 predictions พร้อม %
     html += `
-        <div class="pattern-candle pattern-result">
-            <span class="pattern-candle-label">TODAY?</span>
-            ${drawSmallCandle(prediction.topType)}
-            <span class="pattern-candle-name">${CANDLE_TYPES[prediction.topType]}</span>
+        <div class="pattern-predictions">
+            <div class="pattern-candle pattern-result pattern-top1">
+                <span class="pattern-candle-label">TOP 1</span>
+                ${drawSmallCandle(prediction.topType)}
+                <span class="pattern-candle-name">${CANDLE_TYPES[prediction.topType]}</span>
+                <span class="pattern-percent">${prediction.topPercent.toFixed(1)}%</span>
+            </div>
+            <div class="pattern-candle pattern-result pattern-top2">
+                <span class="pattern-candle-label">TOP 2</span>
+                ${drawSmallCandle(prediction.secondType)}
+                <span class="pattern-candle-name">${CANDLE_TYPES[prediction.secondType]}</span>
+                <span class="pattern-percent">${prediction.secondPercent.toFixed(1)}%</span>
+            </div>
         </div>
     `;
 
@@ -401,8 +416,9 @@ function calculatePredictedPrices(openPrice, metrics, isBullish) {
 }
 
 // Render Predicted Prices (Left side)
-function renderPredictedPrices(predictedPrices, isBullish) {
-    const container = document.getElementById('predictedPrices');
+function renderPredictedPrices(predictedPrices, isBullish, containerId = 'predictedPrices') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
     // Order: High, Close (bullish) or Open (bearish), Open (bullish) or Close (bearish), Low
     const prices = isBullish ? [
@@ -429,8 +445,10 @@ function renderPredictedPrices(predictedPrices, isBullish) {
 }
 
 // Render Trade Levels (Right side)
-function renderTradeLevels(setup, openPrice) {
-    const container = document.getElementById('tradeLevels');
+function renderTradeLevels(setup, openPrice, containerId = 'tradeLevels') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
     const levels = setup.isBullish ? [
         { name: 'TP2', value: setup.tp2, class: 'tp2' },
         { name: 'TP1', value: setup.tp1, class: 'tp1' },
@@ -456,8 +474,10 @@ function renderTradeLevels(setup, openPrice) {
     `).join('');
 }
 
-function renderCandleMetrics(metrics) {
-    const container = document.getElementById('candleMetrics');
+function renderCandleMetrics(metrics, containerId = 'candleMetrics') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
     const items = [
         { label: 'high_open_dist', value: metrics.high_open_dist },
         { label: 'upper_wick', value: metrics.upper_wick },
@@ -474,38 +494,72 @@ function renderCandleMetrics(metrics) {
     `).join('');
 }
 
-function renderTradeSetup(setup, prediction) {
-    const header = document.getElementById('tradeHeader');
-    const typeEl = document.getElementById('tradeType');
-    const badgeEl = document.getElementById('tradeBadge');
+// Render both Plan A and Plan B
+function renderBothPlans(prediction, avgDistances, openPrice) {
+    // Plan A (Top 1)
+    const topType = prediction.topType;
+    const topIsBullish = topType % 2 === 0;
+    const setupA = calculateTradeSetup(openPrice, topType, avgDistances);
+    const predictedPricesA = calculatePredictedPrices(openPrice, setupA.metrics, topIsBullish);
+
+    document.getElementById('planABadge').textContent = `${CANDLE_TYPES[topType]} (${prediction.topPercent.toFixed(1)}%)`;
+    document.getElementById('candleDrawingA').innerHTML = drawPredictedCandle(topType, setupA);
+    renderPredictedPrices(predictedPricesA, topIsBullish, 'predictedPricesA');
+    renderTradeLevels(setupA, openPrice, 'tradeLevelsA');
+    renderCandleMetrics(setupA.metrics, 'candleMetricsA');
+    renderTradeSetup(setupA, topType, 'A');
+
+    // Plan B (Top 2)
+    const secondType = prediction.secondType;
+    const secondIsBullish = secondType % 2 === 0;
+    const setupB = calculateTradeSetup(openPrice, secondType, avgDistances);
+    const predictedPricesB = calculatePredictedPrices(openPrice, setupB.metrics, secondIsBullish);
+
+    document.getElementById('planBBadge').textContent = `${CANDLE_TYPES[secondType]} (${prediction.secondPercent.toFixed(1)}%)`;
+    document.getElementById('candleDrawingB').innerHTML = drawPredictedCandle(secondType, setupB);
+    renderPredictedPrices(predictedPricesB, secondIsBullish, 'predictedPricesB');
+    renderTradeLevels(setupB, openPrice, 'tradeLevelsB');
+    renderCandleMetrics(setupB.metrics, 'candleMetricsB');
+    renderTradeSetup(setupB, secondType, 'B');
+
+    // Return the primary setup (Plan A) for summary stats
+    return setupA;
+}
+
+function renderTradeSetup(setup, candleType, suffix = 'A') {
+    const header = document.getElementById('tradeHeader' + suffix);
+    const typeEl = document.getElementById('tradeType' + suffix);
+    const badgeEl = document.getElementById('tradeBadge' + suffix);
+
+    if (!header || !typeEl || !badgeEl) return;
 
     if (setup.isBullish) {
         header.className = 'trade-setup-header buy';
         typeEl.className = 'trade-type buy';
         typeEl.textContent = 'BUY';
         badgeEl.className = 'trade-badge buy';
-        badgeEl.textContent = CANDLE_TYPES[prediction.topType];
+        badgeEl.textContent = CANDLE_TYPES[candleType];
     } else {
         header.className = 'trade-setup-header sell';
         typeEl.className = 'trade-type sell';
         typeEl.textContent = 'SELL';
         badgeEl.className = 'trade-badge sell';
-        badgeEl.textContent = CANDLE_TYPES[prediction.topType];
+        badgeEl.textContent = CANDLE_TYPES[candleType];
     }
 
-    document.getElementById('entryZone').textContent = `$${setup.entryLow.toFixed(2)} - $${setup.entryHigh.toFixed(2)}`;
-    document.getElementById('entryDetail').textContent = setup.isBullish ? 'Wait for lower wick' : 'Wait for upper wick';
+    document.getElementById('entryZone' + suffix).textContent = `$${setup.entryLow.toFixed(2)} - $${setup.entryHigh.toFixed(2)}`;
+    document.getElementById('entryDetail' + suffix).textContent = setup.isBullish ? 'Wait for lower wick' : 'Wait for upper wick';
 
-    document.getElementById('stopLoss').textContent = `$${setup.sl.toFixed(2)}`;
-    document.getElementById('slDetail').textContent = `-${setup.risk.toFixed(2)} pts | -${(setup.risk / setup.entry * 100).toFixed(2)}%`;
+    document.getElementById('stopLoss' + suffix).textContent = `$${setup.sl.toFixed(2)}`;
+    document.getElementById('slDetail' + suffix).textContent = `-${setup.risk.toFixed(2)} pts | -${(setup.risk / setup.entry * 100).toFixed(2)}%`;
 
-    document.getElementById('takeProfit1').textContent = `$${setup.tp1.toFixed(2)}`;
-    document.getElementById('tp1Detail').textContent = `+${setup.reward1.toFixed(2)} pts | R:R ${setup.rr1}:1`;
+    document.getElementById('takeProfit1' + suffix).textContent = `$${setup.tp1.toFixed(2)}`;
+    document.getElementById('tp1Detail' + suffix).textContent = `+${setup.reward1.toFixed(2)} pts | R:R ${setup.rr1}:1`;
 
-    document.getElementById('takeProfit2').textContent = `$${setup.tp2.toFixed(2)}`;
-    document.getElementById('tp2Detail').textContent = `+${setup.reward2.toFixed(2)} pts | R:R ${setup.rr2}:1`;
+    document.getElementById('takeProfit2' + suffix).textContent = `$${setup.tp2.toFixed(2)}`;
+    document.getElementById('tp2Detail' + suffix).textContent = `+${setup.reward2.toFixed(2)} pts | R:R ${setup.rr2}:1`;
 
-    document.getElementById('strategyText').textContent = setup.strategy;
+    document.getElementById('strategyText' + suffix).textContent = setup.strategy;
 }
 
 function renderSummaryStats(prediction, avgRange) {
@@ -541,27 +595,18 @@ function updatePredictionWithPeriod() {
     // Calculate average distances with period-filtered data
     const avgDistances = calculateAvgDistanceByType(periodFilteredData);
 
-    // Calculate trade setup
-    const setup = calculateTradeSetup(openPrice, prediction.topType, avgDistances);
-
     // Calculate average range
     const avgRange = periodFilteredData.reduce((sum, row) => sum + (row.high - row.low || 0), 0) / periodFilteredData.length;
-
-    // Calculate predicted prices (OHLC)
-    const isBullish = prediction.topType % 2 === 0;
-    const predictedPrices = calculatePredictedPrices(openPrice, setup.metrics, isBullish);
 
     // Update UI
     document.getElementById('predProbability').textContent = prediction.topPercent.toFixed(1) + '%';
     document.getElementById('predSamples').textContent = prediction.total.toLocaleString();
-    document.getElementById('candleTypeBadge').textContent = CANDLE_TYPES[prediction.topType];
 
     renderPatternFlow(pattern, prediction);
-    document.getElementById('candleDrawing').innerHTML = drawPredictedCandle(prediction.topType, setup);
-    renderPredictedPrices(predictedPrices, isBullish);
-    renderTradeLevels(setup, openPrice);
-    renderCandleMetrics(setup.metrics);
-    renderTradeSetup(setup, prediction);
+
+    // Render both plans (Plan A = Top 1, Plan B = Top 2)
+    renderBothPlans(prediction, avgDistances, openPrice);
+
     renderSummaryStats(prediction, avgRange);
 
     // Update period info
@@ -679,9 +724,6 @@ async function init() {
         // Calculate average distances with period-filtered data
         const avgDistances = calculateAvgDistanceByType(periodFilteredData);
 
-        // Calculate trade setup
-        const setup = calculateTradeSetup(openPrice, prediction.topType, avgDistances);
-
         // Calculate average range from period-filtered data
         const avgRange = periodFilteredData.reduce((sum, row) => sum + (row.high - row.low || 0), 0) / periodFilteredData.length;
 
@@ -691,22 +733,16 @@ async function init() {
             weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
         });
 
-        // Calculate predicted prices (OHLC)
-        const isBullish = prediction.topType % 2 === 0;
-        const predictedPrices = calculatePredictedPrices(openPrice, setup.metrics, isBullish);
-
         // Render UI
         document.getElementById('openPrice').textContent = '$' + openPrice.toFixed(2);
         document.getElementById('predProbability').textContent = prediction.topPercent.toFixed(1) + '%';
         document.getElementById('predSamples').textContent = prediction.total.toLocaleString();
-        document.getElementById('candleTypeBadge').textContent = CANDLE_TYPES[prediction.topType];
 
         renderPatternFlow(pattern, prediction);
-        document.getElementById('candleDrawing').innerHTML = drawPredictedCandle(prediction.topType, setup);
-        renderPredictedPrices(predictedPrices, isBullish);  // Left: Predicted prices
-        renderTradeLevels(setup, openPrice);                 // Right: Trade levels
-        renderCandleMetrics(setup.metrics);
-        renderTradeSetup(setup, prediction);
+
+        // Render both plans (Plan A = Top 1, Plan B = Top 2)
+        const setup = renderBothPlans(prediction, avgDistances, openPrice);
+
         renderSummaryStats(prediction, avgRange);
         renderMiniCandleChart(rawData, 20);                  // Mini candlestick chart
 
@@ -732,25 +768,18 @@ async function init() {
             const newFilteredData = filterDataByPattern(newPeriodFilteredData, newPattern.prev1, newPattern.prev2, newPattern.prev3);
             const newPrediction = calculateNextCandleDistribution(newFilteredData);
             const newAvgDistances = calculateAvgDistanceByType(newPeriodFilteredData);
-            const newSetup = calculateTradeSetup(newOpenPrice, newPrediction.topType, newAvgDistances);
             const newAvgRange = newPeriodFilteredData.reduce((sum, row) => sum + (row.high - row.low || 0), 0) / newPeriodFilteredData.length;
-
-            // Calculate predicted prices
-            const newIsBullish = newPrediction.topType % 2 === 0;
-            const newPredictedPrices = calculatePredictedPrices(newOpenPrice, newSetup.metrics, newIsBullish);
 
             // Update UI
             document.getElementById('openPrice').textContent = '$' + newOpenPrice.toFixed(2);
             document.getElementById('predProbability').textContent = newPrediction.topPercent.toFixed(1) + '%';
             document.getElementById('predSamples').textContent = newPrediction.total.toLocaleString();
-            document.getElementById('candleTypeBadge').textContent = CANDLE_TYPES[newPrediction.topType];
 
             renderPatternFlow(newPattern, newPrediction);
-            document.getElementById('candleDrawing').innerHTML = drawPredictedCandle(newPrediction.topType, newSetup);
-            renderPredictedPrices(newPredictedPrices, newIsBullish);
-            renderTradeLevels(newSetup, newOpenPrice);
-            renderCandleMetrics(newSetup.metrics);
-            renderTradeSetup(newSetup, newPrediction);
+
+            // Render both plans (Plan A = Top 1, Plan B = Top 2)
+            renderBothPlans(newPrediction, newAvgDistances, newOpenPrice);
+
             renderSummaryStats(newPrediction, newAvgRange);
             renderMiniCandleChart(rawData, 20);              // Mini candlestick chart
 
