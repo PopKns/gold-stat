@@ -23,6 +23,84 @@ function updatePeriodInfo(selectId, infoId) {
 }
 
 // ============================================
+// Full Mini Candlestick Chart (50 candles)
+// ============================================
+
+function renderFullMiniChart(data, numCandles = 50) {
+    const container = document.getElementById('fullMiniChart');
+    if (!container || data.length < numCandles) return;
+
+    // Get last N candles
+    const candles = data.slice(-numCandles);
+
+    // Find min/max for scaling
+    let minLow = Infinity, maxHigh = -Infinity;
+    candles.forEach(c => {
+        if (c.low < minLow) minLow = c.low;
+        if (c.high > maxHigh) maxHigh = c.high;
+    });
+
+    const priceRange = maxHigh - minLow;
+    const chartHeight = 160; // px
+
+    // Calculate stats
+    let bullishCount = 0, bearishCount = 0, totalRange = 0;
+
+    // Generate candle HTML
+    const candlesHtml = candles.map((candle, index) => {
+        const isBull = isBullish(candle.candle_type);
+        if (isBull) bullishCount++; else bearishCount++;
+        totalRange += (candle.high - candle.low);
+
+        // Calculate positions (as percentage of chart height)
+        const highPos = ((maxHigh - candle.high) / priceRange) * chartHeight;
+        const lowPos = ((maxHigh - candle.low) / priceRange) * chartHeight;
+        const bodyTop = ((maxHigh - Math.max(candle.open, candle.close)) / priceRange) * chartHeight;
+        const bodyBottom = ((maxHigh - Math.min(candle.open, candle.close)) / priceRange) * chartHeight;
+        const bodyHeight = Math.max(bodyBottom - bodyTop, 2);
+
+        const wickHeight = lowPos - highPos;
+        const isLast = index === candles.length - 1;
+
+        return `
+            <div class="full-mini-candle ${isBull ? 'bullish' : 'bearish'} ${isLast ? 'current' : ''}"
+                 style="height: ${chartHeight}px;">
+                <div class="full-mini-candle-wick" style="top: ${highPos}px; height: ${wickHeight}px;"></div>
+                <div class="full-mini-candle-body" style="top: ${bodyTop}px; height: ${bodyHeight}px;"></div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = candlesHtml;
+
+    // Update stats
+    document.getElementById('chartBullish').textContent = bullishCount;
+    document.getElementById('chartBearish').textContent = bearishCount;
+    document.getElementById('chartAvgRange').textContent = '$' + (totalRange / numCandles).toFixed(2);
+
+    // Update axis labels
+    const firstCandle = candles[0];
+    const lastCandle = candles[candles.length - 1];
+    document.getElementById('chartStartDate').textContent = formatDate(firstCandle.datetime);
+    document.getElementById('chartEndDate').textContent = formatDate(lastCandle.datetime);
+
+    // Update current price
+    const currentCandle = data[data.length - 1];
+    const prevCandle = data[data.length - 2];
+
+    document.getElementById('currentPriceValue').textContent = '$' + currentCandle.close.toFixed(2);
+
+    if (prevCandle && currentCandle) {
+        const change = currentCandle.close - prevCandle.close;
+        const changePct = (change / prevCandle.close) * 100;
+        const badge = document.getElementById('priceChangeBadge');
+
+        badge.textContent = (change >= 0 ? '+' : '') + '$' + change.toFixed(2) + ' (' + (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%)';
+        badge.className = 'price-change-badge ' + (change >= 0 ? 'positive' : 'negative');
+    }
+}
+
+// ============================================
 // Dashboard Specific Functions
 // ============================================
 
@@ -237,8 +315,8 @@ function createAvgDistanceChart(averages) {
     const ctx = document.getElementById('avgDistanceChart').getContext('2d');
     if (charts.avgDistance) charts.avgDistance.destroy();
 
-    // Order types for better visualization
-    const typeOrder = [2, 4, 6, 0, 7, 1, 5, 3];
+    // Order types for better visualization (10 types)
+    const typeOrder = [2, 3, 4, 5, 6, 7, 8, 9, 0, 1];
     const labels = typeOrder.map(t => CANDLE_TYPES[t]);
 
     const metrics = ['high_open_dist', 'upper_wick', 'body_size', 'lower_wick', 'open_low_dist'];
@@ -645,10 +723,15 @@ function drawCandleSVG(type) {
             bodyHeight = 40;
             lowerWickHeight = 20;
             break;
-        case 6: case 7: // Long Wick
-            upperWickHeight = 40;
+        case 6: case 7: // Long Upper Wick
+            upperWickHeight = 45;
             bodyHeight = 25;
-            lowerWickHeight = 15;
+            lowerWickHeight = 10;
+            break;
+        case 8: case 9: // Long Lower Wick
+            upperWickHeight = 10;
+            bodyHeight = 25;
+            lowerWickHeight = 45;
             break;
         default:
             upperWickHeight = 20;
@@ -679,7 +762,8 @@ function createCandleTypeCards(averages, distribution, periodLabel = '10 years')
     if (!grid) return;
 
     grid.innerHTML = '';
-    const typeOrder = [0, 2, 4, 6, 1, 3, 5, 7];
+    // Order: Bullish first (0,2,4,6,8), then Bearish (1,3,5,7,9)
+    const typeOrder = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9];
 
     typeOrder.forEach(type => {
         const isBullish = type % 2 === 0;
@@ -775,6 +859,7 @@ async function renderDashboard(data) {
     const avgDistances = calculateAvgDistanceByType(filteredData);
 
     await updateHeroStats(data);
+    renderFullMiniChart(data, 50);  // 50 candles mini chart
     createSentimentChart(sentiment);
     createTypeDistributionChart(typeDistribution);
     createAvgDistanceChart(avgDistances);

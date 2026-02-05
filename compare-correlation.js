@@ -189,8 +189,8 @@ function renderScatterChart() {
             datasets: [{
                 label: 'Daily Price Change',
                 data: scatterData,
-                backgroundColor: 'rgba(0, 245, 255, 0.5)',
-                borderColor: '#00f5ff',
+                backgroundColor: 'rgba(115, 103, 240, 0.5)',
+                borderColor: '#7367F0',
                 pointRadius: 3,
                 pointHoverRadius: 6
             }]

@@ -1,0 +1,21 @@
+name: quant-viz
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - requests>=2.31.0
+  - pandas>=2.0.0
+  - numpy>=1.24.0
+  - matplotlib>=3.7.0
+  - scipy>=1.11.0
+  - seaborn>=0.13.0
+  - pytz>=2023.3
+  - git  # Add git for GitHub installations
+  - pip
+  - pip:
+    - python-dotenv>=1.0.0
+    - TA-Lib>=0.4.25
+    - git+https://github.com/rongardF/tvdatafeed.git
+    - tzdata>=2024.1  # Updated timezone data
+    - pathlib2>=2.3.7  # Better Path handling (if needed for older Python)

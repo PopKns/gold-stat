@@ -6,8 +6,153 @@
     <title>Daily Analysis - Gold Candle Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="shared.css">
+    <style>
+        /* Calendar Styles */
+        .calendar-section {
+            margin-bottom: 2rem;
+        }
+        .calendar-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .calendar-legend {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.75rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+        .legend-dot.bullish { background: var(--success); }
+        .legend-dot.bearish { background: var(--danger); }
+
+        /* Calendar Jump Dropdowns */
+        .calendar-jump {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .calendar-jump label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .cal-select {
+            padding: 0.375rem 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 0.8125rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .cal-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        #calMonthSelect { min-width: 100px; }
+        #calYearSelect { min-width: 70px; }
+
+        /* FullCalendar Dark Theme Override */
+        .fc {
+            --fc-border-color: var(--border-color);
+            --fc-button-bg-color: var(--bg-tertiary);
+            --fc-button-border-color: var(--border-color);
+            --fc-button-text-color: var(--text-primary);
+            --fc-button-hover-bg-color: var(--primary);
+            --fc-button-hover-border-color: var(--primary);
+            --fc-button-active-bg-color: var(--primary);
+            --fc-button-active-border-color: var(--primary);
+            --fc-today-bg-color: rgba(115, 103, 240, 0.15);
+            --fc-neutral-bg-color: var(--bg-secondary);
+            --fc-page-bg-color: transparent;
+            --fc-event-border-color: transparent;
+            font-family: 'Inter', sans-serif;
+        }
+        .fc .fc-toolbar-title {
+            color: var(--text-primary);
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        .fc .fc-col-header-cell-cushion {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        .fc .fc-daygrid-day-number {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .fc .fc-daygrid-day-frame {
+            min-height: 70px;
+        }
+        .fc .fc-daygrid-day-events {
+            margin-top: 0;
+        }
+        .fc-event {
+            border-radius: 4px !important;
+            font-size: 0.6875rem !important;
+            font-weight: 600 !important;
+            padding: 2px 4px !important;
+            margin: 1px 2px !important;
+            cursor: pointer;
+        }
+        .fc-event.bullish-event {
+            background: rgba(40, 199, 111, 0.2) !important;
+            color: var(--success) !important;
+            border-left: 3px solid var(--success) !important;
+        }
+        .fc-event.bearish-event {
+            background: rgba(255, 76, 81, 0.2) !important;
+            color: var(--danger) !important;
+            border-left: 3px solid var(--danger) !important;
+        }
+        .fc .fc-daygrid-day:hover {
+            background: rgba(115, 103, 240, 0.05);
+        }
+        .fc .fc-button {
+            font-size: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--radius);
+        }
+        .fc .fc-button:focus {
+            box-shadow: 0 0 0 2px rgba(115, 103, 240, 0.3);
+        }
+        .fc-theme-standard td, .fc-theme-standard th {
+            border-color: var(--border-color);
+        }
+        .fc .fc-scrollgrid {
+            border-color: var(--border-color);
+        }
+
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -77,6 +222,62 @@
                             <a class="submenu-link" href="daily-plan.html">
                                 <span class="submenu-dot"></span>
                                 <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="cme-oi">
+                            <span class="nav-icon">&#9679;</span>
+                            <span class="nav-text">CME OI</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="cme-oi.html">
+                                <span class="submenu-dot"></span>
+                                <span>Intraday Volume</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="indicators">
+                            <span class="nav-icon">&#9881;</span>
+                            <span class="nav-text">Indicators</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="indicators.html">
+                                <span class="submenu-dot"></span>
+                                <span>MT4/MT5 Download</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="courses">
+                            <span class="nav-icon">&#9658;</span>
+                            <span class="nav-text">Courses</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="courses.html">
+                                <span class="submenu-dot"></span>
+                                <span>Video Courses</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="session">
+                            <span class="nav-icon">&#9200;</span>
+                            <span class="nav-text">Session</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="session-analysis.html">
+                                <span class="submenu-dot"></span>
+                                <span>Session Analysis</span>
                             </a>
                         </div>
                     </div>
@@ -211,6 +412,46 @@
                                 <p style="font-size: 1.5rem; font-weight: 700; color: var(--neon-red);" id="worstDayName">-</p>
                                 <p style="color: var(--text-muted); font-size: 0.875rem;" id="worstDayStats">-</p>
                             </div>
+                        </div>
+                    </section>
+
+                    <!-- Calendar View -->
+                    <section class="section calendar-section">
+                        <div class="section-header">
+                            <h3 class="section-title">Calendar View</h3>
+                        </div>
+                        <div class="calendar-container">
+                            <div class="calendar-header">
+                                <div class="calendar-legend">
+                                    <div class="legend-item">
+                                        <div class="legend-dot bullish"></div>
+                                        <span>Bullish</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-dot bearish"></div>
+                                        <span>Bearish</span>
+                                    </div>
+                                </div>
+                                <div class="calendar-jump">
+                                    <label>Jump to:</label>
+                                    <select id="calMonthSelect" class="cal-select">
+                                        <option value="0">January</option>
+                                        <option value="1">February</option>
+                                        <option value="2">March</option>
+                                        <option value="3">April</option>
+                                        <option value="4">May</option>
+                                        <option value="5">June</option>
+                                        <option value="6">July</option>
+                                        <option value="7">August</option>
+                                        <option value="8">September</option>
+                                        <option value="9">October</option>
+                                        <option value="10">November</option>
+                                        <option value="11">December</option>
+                                    </select>
+                                    <select id="calYearSelect" class="cal-select"></select>
+                                </div>
+                            </div>
+                            <div id="tradingCalendar"></div>
                         </div>
                     </section>
 
