@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MT4/MT5 Indicators - Gold Candle Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* Indicator Cards Grid */
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Indicator Card */
+        .indicator-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+        .indicator-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(115, 103, 240, 0.15);
+        }
+
+        .indicator-preview {
+            height: 180px;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .indicator-preview::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(90deg, rgba(115, 103, 240, 0.1) 1px, transparent 1px),
+                linear-gradient(rgba(115, 103, 240, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .indicator-preview img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: var(--radius);
+            position: relative;
+            z-index: 1;
+        }
+        .indicator-preview .placeholder-icon {
+            font-size: 4rem;
+            color: var(--primary);
+            opacity: 0.5;
+        }
+
+        .indicator-content {
+            padding: 1.5rem;
+        }
+
+        .indicator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .indicator-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .indicator-version {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .indicator-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-free {
+            background: rgba(40, 199, 111, 0.15);
+            color: var(--success);
+        }
+        .badge-premium {
+            background: rgba(255, 159, 67, 0.15);
+            color: #ff9f43;
+        }
+        .badge-new {
+            background: rgba(115, 103, 240, 0.15);
+            color: var(--primary);
+        }
+
+        .indicator-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .indicator-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .feature-tag {
+            padding: 0.25rem 0.625rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+
+        .indicator-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .meta-icon {
+            font-size: 0.875rem;
+        }
+
+        .indicator-platforms {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .platform-badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--radius);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .platform-mt4 {
+            background: rgba(0, 150, 136, 0.15);
+            color: #26a69a;
+            border: 1px solid rgba(0, 150, 136, 0.3);
+        }
+        .platform-mt5 {
+            background: rgba(33, 150, 243, 0.15);
+            color: #42a5f5;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .indicator-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .btn-download {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-download.primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+        .btn-download.primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        .btn-download.secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-download.secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Detail Section */
+        .detail-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .detail-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .detail-title .icon {
+            color: var(--primary);
+        }
+
+        /* Installation Guide */
+        .install-steps {
+            counter-reset: step;
+        }
+        .install-step {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .install-step:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+        .step-content h4 {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.375rem;
+        }
+        .step-content p {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .step-content code {
+            background: var(--bg-tertiary);
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.75rem;
+            color: var(--primary);
+        }
+
+        /* FAQ Accordion */
+        .faq-item {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+        }
+        .faq-question {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: var(--bg-tertiary);
+            border: none;
+            text-align: left;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+        .faq-question:hover {
+            background: var(--bg-secondary);
+        }
+        .faq-question .arrow {
+            transition: transform 0.2s ease;
+        }
+        .faq-item.open .faq-question .arrow {
+            transform: rotate(180deg);
+        }
+        .faq-answer {
+            padding: 0 1.25rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .faq-item.open .faq-answer {
+            padding: 1rem 1.25rem;
+            max-height: 500px;
+        }
+        .faq-answer p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        .filter-tab:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .filter-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .indicators-grid {
+                grid-template-columns: 1fr;
+            }
+            .indicator-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">&#9672;</div>
+                <div class="sidebar-brand">
+                    <h1>Gold Analysis</h1>
+                    <p>Multi-Market Dashboard v4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">&#9654;</button>
+
+            <!-- Market Selector -->
+            <div class="market-selector-container">
+                <div class="market-selector-label">Select Market</div>
+                <select class="market-selector" id="marketSelector">
+                    <option value="xauusd">XAUUSD (CFD)</option>
+                    <option value="gc1">GC1! (Futures)</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="dashboard" href="index.html">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="cme-oi">
+                            <span class="nav-icon">&#9679;</span>
+                            <span class="nav-text">CME OI</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="cme-oi.html">
+                                <span class="submenu-dot"></span>
+                                <span>Intraday Volume</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Indicators Menu -->
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="indicators">
+                            <span class="nav-icon">&#9881;</span>
+                            <span class="nav-text">Indicators</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link active" href="indicators.html">
+                                <span class="submenu-dot"></span>
+                                <span>MT4/MT5 Download</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="courses">
+                            <span class="nav-icon">&#9658;</span>
+                            <span class="nav-text">Courses</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="courses.html">
+                                <span class="submenu-dot"></span>
+                                <span>Video Courses</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="session">
+                            <span class="nav-icon">&#9200;</span>
+                            <span class="nav-text">Session</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="session-analysis.html">
+                                <span class="submenu-dot"></span>
+                                <span>Session Analysis</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9432;</span><span class="nav-text">Help</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">MT4/MT5 Indicators</h2>
+                </div>
+                <div class="header-actions">
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span>Free Download</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                    <div class="blur-circle blur-pink"></div>
+                </div>
+
+                <div class="page-content">
+                    <!-- Page Header -->
+                    <div class="page-header">
+                        <p class="page-subtitle">TRADING TOOLS</p>
+                        <h1 class="page-title"><span class="gradient">MT4/MT5</span> Indicators</h1>
+                        <p class="page-desc">Download custom indicators for MetaTrader 4 and MetaTrader 5 platforms</p>
+                    </div>
+
+                    <!-- Stats Summary -->
+                    <div class="stats-grid">
+                        <div class="stat-card cyan">
+                            <p class="stat-value white">6</p>
+                            <p class="stat-label">Total Indicators</p>
+                        </div>
+                        <div class="stat-card green">
+                            <p class="stat-value green">4</p>
+                            <p class="stat-label">Free Downloads</p>
+                        </div>
+                        <div class="stat-card orange">
+                            <p class="stat-value orange">2</p>
+                            <p class="stat-label">Premium Tools</p>
+                        </div>
+                        <div class="stat-card red">
+                            <p class="stat-value red">1,250+</p>
+                            <p class="stat-label">Total Downloads</p>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all">All Indicators</button>
+                        <button class="filter-tab" data-filter="free">Free</button>
+                        <button class="filter-tab" data-filter="premium">Premium</button>
+                        <button class="filter-tab" data-filter="mt4">MT4 Only</button>
+                        <button class="filter-tab" data-filter="mt5">MT5 Only</button>
+                    </div>
+
+                    <!-- Indicators Grid -->
+                    <div class="indicators-grid">
+
+                        <!-- Indicator 1: Gold Candle Pattern -->
+                        <div class="indicator-card" data-type="free" data-platform="mt4 mt5">
+                            <div class="indicator-preview">
+                                <span class="placeholder-icon">&#9733;</span>
+                            </div>
+                            <div class="indicator-content">
+                                <div class="indicator-header">
+                                    <div>
+                                        <h3 class="indicator-title">Gold Candle Pattern</h3>
+                                        <span class="indicator-version">Version 2.1</span>
+                                    </div>
+                                    <span class="indicator-badge badge-free">Free</span>
+                                </div>
+                                <p class="indicator-desc">
+                                    Automatically identifies and labels candle patterns (Doji, Full Body, Long Wick) on your chart with color-coded markers.
+                                </p>
+                                <div class="indicator-features">
+                                    <span class="feature-tag">Pattern Detection</span>
+                                    <span class="feature-tag">Auto Label</span>
+                                    <span class="feature-tag">Multi-TF</span>
+                                </div>
+                                <div class="indicator-platforms">
+                                    <span class="platform-badge platform-mt4">MT4</span>
+                                    <span class="platform-badge platform-mt5">MT5</span>
+                                </div>
+                                <div class="indicator-meta">
+                                    <span class="meta-item"><span class="meta-icon">&#8681;</span> 523 downloads</span>
+                                    <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.8/5</span>
+                                </div>
+                                <div class="indicator-actions">
+                                    <a href="#" class="btn-download primary">&#8681; Download MT4</a>
+                                    <a href="#" class="btn-download secondary">&#8681; MT5</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicator 2: Pattern Predictor -->
+                        <div class="indicator-card" data-type="premium" data-platform="mt4 mt5">
+                            <div class="indicator-preview">
+                                <span class="placeholder-icon">&#9830;</span>
+                            </div>
+                            <div class="indicator-content">
+                                <div class="indicator-header">
+                                    <div>
+                                        <h3 class="indicator-title">Pattern Predictor Pro</h3>
+                                        <span class="indicator-version">Version 3.0</span>
+                                    </div>
+                                    <span class="indicator-badge badge-premium">Premium</span>
+                                </div>
+                                <p class="indicator-desc">
+                                    Advanced pattern prediction based on 10-year historical data. Shows probability of next candle type with entry/exit suggestions.
+                                </p>
+                                <div class="indicator-features">
+                                    <span class="feature-tag">AI Prediction</span>
+                                    <span class="feature-tag">Entry Signals</span>
+                                    <span class="feature-tag">Dashboard</span>
+                                    <span class="feature-tag">Alerts</span>
+                                </div>
+                                <div class="indicator-platforms">
+                                    <span class="platform-badge platform-mt4">MT4</span>
+                                    <span class="platform-badge platform-mt5">MT5</span>
+                                </div>
+                                <div class="indicator-meta">
+                                    <span class="meta-item"><span class="meta-icon">&#8681;</span> 312 downloads</span>
+                                    <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9/5</span>
+                                </div>
+                                <div class="indicator-actions">
+                                    <a href="#" class="btn-download primary">&#128274; Get Premium</a>
+                                    <a href="#" class="btn-download secondary">Demo</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicator 3: Multi-TF Dashboard -->
+                        <div class="indicator-card" data-type="free" data-platform="mt4 mt5">
+                            <div class="indicator-preview">
+                                <span class="placeholder-icon">&#9638;</span>
+                            </div>
+                            <div class="indicator-content">
+                                <div class="indicator-header">
+                                    <div>
+                                        <h3 class="indicator-title">Multi-TF Dashboard</h3>
+                                        <span class="indicator-version">Version 1.5</span>
+                                    </div>
+                                    <span class="indicator-badge badge-free">Free</span>
+                                </div>
+                                <p class="indicator-desc">
+                                    Display candle type analysis across multiple timeframes (M15, H1, H4, D1) in a compact on-chart panel.
+                                </p>
+                                <div class="indicator-features">
+                                    <span class="feature-tag">Multi-Timeframe</span>
+                                    <span class="feature-tag">On-Chart Panel</span>
+                                    <span class="feature-tag">Customizable</span>
+                                </div>
+                                <div class="indicator-platforms">
+                                    <span class="platform-badge platform-mt4">MT4</span>
+                                    <span class="platform-badge platform-mt5">MT5</span>
+                                </div>
+                                <div class="indicator-meta">
+                                    <span class="meta-item"><span class="meta-icon">&#8681;</span> 189 downloads</span>
+                                    <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.6/5</span>
+                                </div>
+                                <div class="indicator-actions">
+                                    <a href="#" class="btn-download primary">&#8681; Download MT4</a>
+                                    <a href="#" class="btn-download secondary">&#8681; MT5</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicator 4: Session Highlighter -->
+                        <div class="indicator-card" data-type="free" data-platform="mt4">
+                            <div class="indicator-preview">
+                                <span class="placeholder-icon">&#9200;</span>
+                            </div>
+                            <div class="indicator-content">
+                                <div class="indicator-header">
+                                    <div>
+                                        <h3 class="indicator-title">Gold Session Highlighter</h3>
+                                        <span class="indicator-version">Version 1.2</span>
+                                    </div>
+                                    <span class="indicator-badge badge-free">Free</span>
+                                </div>
+                                <p class="indicator-desc">
+                                    Highlights Asian, London, and New York trading sessions with customizable colors. Perfect for session-based trading strategies.
+                                </p>
+                                <div class="indicator-features">
+                                    <span class="feature-tag">Session Zones</span>
+                                    <span class="feature-tag">Custom Colors</span>
+                                    <span class="feature-tag">Lightweight</span>
+                                </div>
+                                <div class="indicator-platforms">
+                                    <span class="platform-badge platform-mt4">MT4</span>
+                                </div>
+                                <div class="indicator-meta">
+                                    <span class="meta-item"><span class="meta-icon">&#8681;</span> 156 downloads</span>
+                                    <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.5/5</span>
+                                </div>
+                                <div class="indicator-actions">
+                                    <a href="#" class="btn-download primary">&#8681; Download MT4</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicator 5: Risk Calculator -->
+                        <div class="indicator-card" data-type="free" data-platform="mt5">
+                            <div class="indicator-preview">
+                                <span class="placeholder-icon">&#9879;</span>
+                            </div>
+                            <div class="indicator-content">
+                                <div class="indicator-header">
+                                    <div>
+                                        <h3 class="indicator-title">Gold Risk Calculator</h3>
+                                        <span class="indicator-version">Version 2.0</span>
+                                    </div>
+                                    <span class="indicator-badge badge-new">New</span>
+                                </div>
+                                <p class="indicator-desc">
+                                    Calculate optimal lot size based on your risk percentage and stop loss distance. Supports XAUUSD pip value calculations.
+                                </p>
+                                <div class="indicator-features">
+                                    <span class="feature-tag">Lot Calculator</span>
+                                    <span class="feature-tag">Risk %</span>
+                                    <span class="feature-tag">On-Chart Panel</span>
+                                </div>
+                                <div class="indicator-platforms">
+                                    <span class="platform-badge platform-mt5">MT5</span>
+                                </div>
+                                <div class="indicator-meta">
+                                    <span class="meta-item"><span class="meta-icon">&#8681;</span> 78 downloads</span>
+                                    <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.7/5</span>
+                                </div>
+                                <div class="indicator-actions">
+                                    <a href="#" class="btn-download primary">&#8681; Download MT5</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicator 6: Trade Manager -->
+                        <div class="indicator-card" data-type="premium" data-platform="mt4 mt5">
+                            <div class="indicator-preview">
+                                <span class="placeholder-icon">&#9878;</span>
+                            </div>
+                            <div class="indicator-content">
+                                <div class="indicator-header">
+                                    <div>
+                                        <h3 class="indicator-title">Gold Trade Manager</h3>
+                                        <span class="indicator-version">Version 4.0</span>
+                                    </div>
+                                    <span class="indicator-badge badge-premium">Premium</span>
+                                </div>
+                                <p class="indicator-desc">
+                                    Complete trade management solution with one-click trading, partial close, trailing stop, and break-even automation.
+                                </p>
+                                <div class="indicator-features">
+                                    <span class="feature-tag">One-Click Trade</span>
+                                    <span class="feature-tag">Partial Close</span>
+                                    <span class="feature-tag">Trailing SL</span>
+                                    <span class="feature-tag">Break-Even</span>
+                                </div>
+                                <div class="indicator-platforms">
+                                    <span class="platform-badge platform-mt4">MT4</span>
+                                    <span class="platform-badge platform-mt5">MT5</span>
+                                </div>
+                                <div class="indicator-meta">
+                                    <span class="meta-item"><span class="meta-icon">&#8681;</span> 245 downloads</span>
+                                    <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9/5</span>
+                                </div>
+                                <div class="indicator-actions">
+                                    <a href="#" class="btn-download primary">&#128274; Get Premium</a>
+                                    <a href="#" class="btn-download secondary">Demo</a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Installation Guide -->
+                    <div class="detail-section">
+                        <h3 class="detail-title"><span class="icon">&#9881;</span> Installation Guide</h3>
+                        <div class="install-steps">
+                            <div class="install-step">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>Download the Indicator</h4>
+                                    <p>Click the download button and save the <code>.ex4</code> (MT4) or <code>.ex5</code> (MT5) file to your computer.</p>
+                                </div>
+                            </div>
+                            <div class="install-step">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>Open MetaTrader Data Folder</h4>
+                                    <p>In MetaTrader, go to <code>File > Open Data Folder</code> then navigate to <code>MQL4/Indicators</code> (MT4) or <code>MQL5/Indicators</code> (MT5).</p>
+                                </div>
+                            </div>
+                            <div class="install-step">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <h4>Copy the Indicator File</h4>
+                                    <p>Paste the downloaded <code>.ex4</code> or <code>.ex5</code> file into the Indicators folder.</p>
+                                </div>
+                            </div>
+                            <div class="install-step">
+                                <span class="step-number">4</span>
+                                <div class="step-content">
+                                    <h4>Restart MetaTrader</h4>
+                                    <p>Close and reopen MetaTrader, or right-click on Navigator panel and select "Refresh". The indicator will appear in your indicator list.</p>
+                                </div>
+                            </div>
+                            <div class="install-step">
+                                <span class="step-number">5</span>
+                                <div class="step-content">
+                                    <h4>Apply to Chart</h4>
+                                    <p>Drag the indicator from Navigator panel onto your XAUUSD chart. Configure settings in the popup window and click OK.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Section -->
+                    <div class="detail-section">
+                        <h3 class="detail-title"><span class="icon">&#9432;</span> Frequently Asked Questions</h3>
+
+                        <div class="faq-item">
+                            <button class="faq-question">
+                                What's the difference between MT4 and MT5 indicators?
+                                <span class="arrow">&#9660;</span>
+                            </button>
+                            <div class="faq-answer">
+                                <p>MT4 indicators use <code>.mq4/.ex4</code> files and are designed for MetaTrader 4 platform. MT5 indicators use <code>.mq5/.ex5</code> files for MetaTrader 5. They are not interchangeable - you must download the correct version for your platform.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <button class="faq-question">
+                                Are these indicators free to use?
+                                <span class="arrow">&#9660;</span>
+                            </button>
+                            <div class="faq-answer">
+                                <p>Indicators marked as "Free" can be downloaded and used without any payment. Premium indicators require a one-time purchase. All indicators include free updates for life.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <button class="faq-question">
+                                Will these indicators work on any broker?
+                                <span class="arrow">&#9660;</span>
+                            </button>
+                            <div class="faq-answer">
+                                <p>Yes, these indicators work with any broker that offers MT4/MT5 platform and XAUUSD (Gold) trading. The indicators are symbol-independent and can be used on any chart.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <button class="faq-question">
+                                Do you provide support for indicator issues?
+                                <span class="arrow">&#9660;</span>
+                            </button>
+                            <div class="faq-answer">
+                                <p>Yes, we provide email support for all indicators. Premium users get priority support with faster response times. Contact us at support@goldanalysis.com</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <button class="faq-question">
+                                Can I use these indicators on a VPS?
+                                <span class="arrow">&#9660;</span>
+                            </button>
+                            <div class="faq-answer">
+                                <p>Yes, all indicators are VPS-compatible. Simply install them on your VPS MetaTrader installation the same way you would on a local computer.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        // Initialize sidebar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar toggle
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', () => {
+                    sidebar.classList.add('mobile-open');
+                    sidebarOverlay.classList.add('active');
+                });
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    sidebarOverlay.classList.remove('active');
+                });
+            }
+
+            // Nav item toggle
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.parentElement.querySelector('.submenu')) {
+                        e.preventDefault();
+                        this.parentElement.classList.toggle('open');
+                    }
+                });
+            });
+
+            // Filter tabs
+            const filterTabs = document.querySelectorAll('.filter-tab');
+            const indicatorCards = document.querySelectorAll('.indicator-card');
+
+            filterTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Update active tab
+                    filterTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const filter = this.dataset.filter;
+
+                    // Filter cards
+                    indicatorCards.forEach(card => {
+                        const type = card.dataset.type;
+                        const platform = card.dataset.platform;
+
+                        let show = true;
+                        if (filter === 'free' && type !== 'free') show = false;
+                        if (filter === 'premium' && type !== 'premium') show = false;
+                        if (filter === 'mt4' && !platform.includes('mt4')) show = false;
+                        if (filter === 'mt5' && !platform.includes('mt5')) show = false;
+
+                        card.style.display = show ? 'block' : 'none';
+                    });
+                });
+            });
+
+            // FAQ accordion
+            document.querySelectorAll('.faq-question').forEach(question => {
+                question.addEventListener('click', function() {
+                    const faqItem = this.parentElement;
+                    const wasOpen = faqItem.classList.contains('open');
+
+                    // Close all
+                    document.querySelectorAll('.faq-item').forEach(item => {
+                        item.classList.remove('open');
+                    });
+
+                    // Open clicked if it wasn't open
+                    if (!wasOpen) {
+                        faqItem.classList.add('open');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

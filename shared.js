@@ -16,7 +16,7 @@ const MARKETS = {
         exchange: 'OANDA',
         type: 'CFD',
         dataFile: 'xauusd_10years_data.csv',
-        color: '#00f5ff',
+        color: '#7367F0',
         icon: '💰'
     },
     gc1: {
@@ -37,7 +37,7 @@ const dataCache = {
     gc1: null
 };
 
-// Candle type mapping
+// Candle type mapping (10 types)
 const CANDLE_TYPES = {
     0: 'Doji Bullish',
     1: 'Doji Bearish',
@@ -45,8 +45,10 @@ const CANDLE_TYPES = {
     3: 'Full Body Bearish',
     4: 'Normal Candle Bullish',
     5: 'Normal Candle Bearish',
-    6: 'Long Wick Bullish',
-    7: 'Long Wick Bearish'
+    6: 'Long Upper Wick Bullish',
+    7: 'Long Upper Wick Bearish',
+    8: 'Long Lower Wick Bullish',
+    9: 'Long Lower Wick Bearish'
 };
 
 // Day of week names
@@ -59,29 +61,32 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// Color scheme
+// Color scheme - Professional Purple Theme
 const COLORS = {
     neon: {
-        cyan: '#00f5ff',
-        purple: '#a855f7',
-        pink: '#ec4899',
-        orange: '#f97316',
-        green: '#22c55e',
-        yellow: '#fbbf24',
-        blue: '#3b82f6',
-        red: '#ef4444'
+        cyan: '#7367F0',
+        purple: '#7367F0',
+        pink: '#E859A3',
+        orange: '#FF9F43',
+        green: '#28C76F',
+        yellow: '#FFCA2C',
+        blue: '#5A8DEE',
+        red: '#FF4C51'
     },
-    bullish: '#22c55e',
-    bearish: '#ef4444',
+    primary: '#7367F0',
+    bullish: '#28C76F',
+    bearish: '#FF4C51',
     types: [
-        'rgba(0, 245, 255, 0.8)',
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(59, 130, 246, 0.8)',
+        'rgba(115, 103, 240, 0.8)',
+        'rgba(40, 199, 111, 0.8)',
+        'rgba(90, 141, 238, 0.8)',
         'rgba(16, 185, 129, 0.8)',
-        'rgba(168, 85, 247, 0.8)',
-        'rgba(249, 115, 22, 0.8)',
-        'rgba(236, 72, 153, 0.8)',
-        'rgba(251, 191, 36, 0.8)'
+        'rgba(143, 133, 243, 0.8)',
+        'rgba(255, 159, 67, 0.8)',
+        'rgba(232, 89, 163, 0.8)',
+        'rgba(255, 202, 44, 0.8)',
+        'rgba(52, 211, 153, 0.8)',
+        'rgba(239, 68, 68, 0.8)'
     ]
 };
 

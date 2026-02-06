@@ -6,6 +6,7 @@ const itemsPerPage = 50;
 let filteredData = [];
 let sortKey = 'datetime';
 let sortAsc = false;
+let tradingCalendar = null;
 
 // ============================================
 // Summary Stats
@@ -249,6 +250,125 @@ function setupEventHandlers(tableData) {
 }
 
 // ============================================
+// Calendar Functions
+// ============================================
+
+function createCalendarEvents(data) {
+    if (!data || !Array.isArray(data)) return [];
+
+    return data.map(row => {
+        const change = (row.close || 0) - (row.open || 0);
+        const bullish = isBullish(row.candle_type);
+        const dateStr = row.datetime; // Format: YYYY-MM-DD
+
+        return {
+            title: (change >= 0 ? '+$' : '-$') + Math.abs(change).toFixed(2),
+            start: dateStr,
+            allDay: true,
+            classNames: [bullish ? 'bullish-event' : 'bearish-event'],
+            extendedProps: {
+                open: row.open || 0,
+                high: row.high || 0,
+                low: row.low || 0,
+                close: row.close || 0,
+                change: change,
+                range: (row.high || 0) - (row.low || 0),
+                candleType: CANDLE_TYPES[row.candle_type] || 'Unknown'
+            }
+        };
+    }).filter(event => event.start); // Filter out events without valid dates
+}
+
+function initCalendar(data) {
+    const calendarEl = document.getElementById('tradingCalendar');
+    if (!calendarEl) {
+        console.warn('Calendar element not found');
+        return;
+    }
+
+    const events = createCalendarEvents(data);
+    const monthSelect = document.getElementById('calMonthSelect');
+    const yearSelect = document.getElementById('calYearSelect');
+
+    // Populate year dropdown
+    const years = getAvailableYears(data);
+    yearSelect.innerHTML = '';
+    years.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+    });
+
+    // Set dropdowns to current date
+    const today = new Date();
+    monthSelect.value = today.getMonth();
+    yearSelect.value = today.getFullYear();
+
+    // Initialize FullCalendar with default toolbar - start at today
+    tradingCalendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        initialDate: today,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+        },
+        events: events,
+        eventDidMount: function(info) {
+            // Tooltip on hover
+            const props = info.event.extendedProps;
+            if (props) {
+                info.el.title = `${info.event.startStr}\nO: $${props.open.toFixed(2)}\nH: $${props.high.toFixed(2)}\nL: $${props.low.toFixed(2)}\nC: $${props.close.toFixed(2)}\nChange: ${props.change >= 0 ? '+' : ''}$${props.change.toFixed(2)}\nRange: $${props.range.toFixed(2)}\nType: ${props.candleType || 'N/A'}`;
+            }
+        },
+        datesSet: function() {
+            // Sync dropdowns when calendar navigates
+            const currentDate = tradingCalendar.getDate();
+            monthSelect.value = currentDate.getMonth();
+            yearSelect.value = currentDate.getFullYear();
+        },
+        height: 'auto',
+        fixedWeekCount: false,
+        showNonCurrentDates: true,
+        dayMaxEvents: 1
+    });
+
+    tradingCalendar.render();
+
+    // Dropdown change handlers
+    function jumpToDate() {
+        const year = yearSelect.value;
+        const month = parseInt(monthSelect.value) + 1;
+        tradingCalendar.gotoDate(`${year}-${String(month).padStart(2, '0')}-15`);
+    }
+
+    monthSelect.addEventListener('change', jumpToDate);
+    yearSelect.addEventListener('change', jumpToDate);
+}
+
+function updateCalendar(data) {
+    if (tradingCalendar) {
+        const events = createCalendarEvents(data);
+        tradingCalendar.removeAllEvents();
+        tradingCalendar.addEventSource(events);
+
+        // Update year dropdown
+        const years = getAvailableYears(data);
+        const yearSelect = document.getElementById('calYearSelect');
+        yearSelect.innerHTML = '';
+        years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearSelect.appendChild(option);
+        });
+
+        tradingCalendar.today();
+    }
+}
+
+// ============================================
 // Initialize
 // ============================================
 
@@ -287,6 +407,17 @@ async function init() {
         showContent();
         initSidebar();
 
+        // Initialize calendar AFTER content is visible
+        try {
+            if (typeof FullCalendar !== 'undefined') {
+                initCalendar(rawData);
+            } else {
+                console.warn('FullCalendar not loaded, skipping calendar');
+            }
+        } catch (calendarError) {
+            console.error('Calendar initialization error:', calendarError);
+        }
+
         // Initialize market selector with refresh callback
         initMarketSelector(async (newData) => {
             rawData = newData;
@@ -302,6 +433,9 @@ async function init() {
             const yearSelect = document.getElementById('filterYear');
             yearSelect.innerHTML = '<option value="">All Years</option>';
             populateYearFilter(rawData);
+
+            // Update calendar with new data
+            updateCalendar(rawData);
 
             currentPage = 1;
             renderTable();

@@ -5,7 +5,7 @@
 let rawData = [];
 let charts = {};
 
-// Candle type mapping
+// Candle type mapping (10 types)
 const CANDLE_TYPES = {
     0: 'Doji Bullish',
     1: 'Doji Bearish',
@@ -13,37 +13,43 @@ const CANDLE_TYPES = {
     3: 'Full Body Bearish',
     4: 'Normal Candle Bullish',
     5: 'Normal Candle Bearish',
-    6: 'Long Wick Bullish',
-    7: 'Long Wick Bearish'
+    6: 'Long Upper Wick Bullish',
+    7: 'Long Upper Wick Bearish',
+    8: 'Long Lower Wick Bullish',
+    9: 'Long Lower Wick Bearish'
 };
 
-// Modern Neon Color scheme
+// Professional Purple Color scheme
 const COLORS = {
     neon: {
-        cyan: '#00f5ff',
-        purple: '#a855f7',
-        pink: '#ec4899',
-        orange: '#f97316',
-        green: '#22c55e',
-        yellow: '#fbbf24',
-        blue: '#3b82f6',
-        red: '#ef4444'
+        cyan: '#7367F0',
+        purple: '#7367F0',
+        pink: '#E859A3',
+        orange: '#FF9F43',
+        green: '#28C76F',
+        yellow: '#FFCA2C',
+        blue: '#5A8DEE',
+        red: '#FF4C51'
     },
-    bullish: 'rgba(0, 245, 255, 0.8)',      // Neon Cyan
-    bearish: 'rgba(34, 197, 94, 0.8)',       // Neon Green
+    primary: '#7367F0',
+    bullish: 'rgba(40, 199, 111, 0.8)',      // Success Green
+    bearish: 'rgba(255, 76, 81, 0.8)',       // Danger Red
     types: [
-        'rgba(0, 245, 255, 0.8)',    // 0: Doji Bullish - Cyan
-        'rgba(34, 197, 94, 0.8)',    // 1: Doji Bearish - Green
-        'rgba(59, 130, 246, 0.8)',   // 2: Full Body Bullish - Blue
+        'rgba(115, 103, 240, 0.8)',  // 0: Doji Bullish - Primary
+        'rgba(40, 199, 111, 0.8)',   // 1: Doji Bearish - Green
+        'rgba(90, 141, 238, 0.8)',   // 2: Full Body Bullish - Blue
         'rgba(16, 185, 129, 0.8)',   // 3: Full Body Bearish - Emerald
-        'rgba(168, 85, 247, 0.8)',   // 4: Normal Candle Bullish - Purple
-        'rgba(249, 115, 22, 0.8)',   // 5: Normal Candle Bearish - Orange
-        'rgba(236, 72, 153, 0.8)',   // 6: Long Wick Bullish - Pink
-        'rgba(251, 191, 36, 0.8)'    // 7: Long Wick Bearish - Yellow
+        'rgba(143, 133, 243, 0.8)',  // 4: Normal Candle Bullish - Light Purple
+        'rgba(255, 159, 67, 0.8)',   // 5: Normal Candle Bearish - Orange
+        'rgba(232, 89, 163, 0.8)',   // 6: Long Upper Wick Bullish - Pink
+        'rgba(255, 202, 44, 0.8)',   // 7: Long Upper Wick Bearish - Yellow
+        'rgba(0, 186, 209, 0.8)',    // 8: Long Lower Wick Bullish - Cyan
+        'rgba(255, 107, 107, 0.8)'   // 9: Long Lower Wick Bearish - Coral
     ],
     typesBorder: [
-        '#00f5ff', '#22c55e', '#3b82f6', '#10b981',
-        '#a855f7', '#f97316', '#ec4899', '#fbbf24'
+        '#7367F0', '#28C76F', '#5A8DEE', '#10b981',
+        '#8F85F3', '#FF9F43', '#E859A3', '#FFCA2C',
+        '#00BAD1', '#FF6B6B'
     ],
     distanceMetrics: {
         high_open_dist: 'rgba(59, 130, 246, 0.8)',
@@ -239,10 +245,15 @@ function drawCandleSVG(type) {
             bodyHeight = 40;
             lowerWickHeight = 20;
             break;
-        case 6: case 7: // Long Wick - long upper wick
-            upperWickHeight = 40;
+        case 6: case 7: // Long Upper Wick - long upper wick
+            upperWickHeight = 45;
             bodyHeight = 25;
-            lowerWickHeight = 15;
+            lowerWickHeight = 10;
+            break;
+        case 8: case 9: // Long Lower Wick - long lower wick
+            upperWickHeight = 10;
+            bodyHeight = 25;
+            lowerWickHeight = 45;
             break;
         default:
             upperWickHeight = 20;
@@ -284,7 +295,9 @@ const CANDLE_DESCRIPTIONS = {
     4: 'Balanced, Bullish',
     5: 'Balanced, Bearish',
     6: 'Wick > 40%, Bullish',
-    7: 'Wick > 40%, Bearish'
+    7: 'Wick > 40%, Bearish',
+    8: 'Lower Wick > 40%, Bullish',
+    9: 'Lower Wick > 40%, Bearish'
 };
 
 function createCandleTypeCards(averages, distribution) {
@@ -293,8 +306,8 @@ function createCandleTypeCards(averages, distribution) {
 
     grid.innerHTML = '';
 
-    // Order: Bullish first (0,2,4,6), then Bearish (1,3,5,7)
-    const typeOrder = [0, 2, 4, 6, 1, 3, 5, 7];
+    // Order: Bullish first (0,2,4,6,8), then Bearish (1,3,5,7,9)
+    const typeOrder = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9];
 
     typeOrder.forEach(type => {
         const isBullish = type % 2 === 0;
@@ -482,7 +495,8 @@ function createAvgDistanceChart(averages) {
     const ctx = document.getElementById('avgDistanceChart').getContext('2d');
     if (charts.avgDistance) charts.avgDistance.destroy();
 
-    const typeOrder = [2, 4, 6, 0, 7, 1, 5, 3];
+    // Order: Full Body, Normal, Long Upper, Long Lower, Doji
+    const typeOrder = [2, 3, 4, 5, 6, 7, 8, 9, 0, 1];
     const labels = typeOrder.map(t => CANDLE_TYPES[t]);
 
     const metrics = ['high_open_dist', 'upper_wick', 'body_size', 'lower_wick', 'open_low_dist'];

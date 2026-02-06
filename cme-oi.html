@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CME Open Interest - Gold Candle Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* CME OI Specific Styles */
+        .oi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .oi-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .oi-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .stat-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .stat-value.put { color: #FFA726; }
+        .stat-value.call { color: #42A5F5; }
+        .stat-value.vol { color: var(--text-primary); }
+        .stat-value.negative { color: var(--danger); }
+        .stat-value.positive { color: var(--success); }
+
+        /* Legend */
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        .legend-dot.put { background: #FFA726; }
+        .legend-dot.call { background: #42A5F5; }
+        .legend-line {
+            width: 20px;
+            height: 2px;
+            border-top: 2px dashed #EF5350;
+        }
+        .legend-box {
+            width: 16px;
+            height: 12px;
+            background: rgba(200, 200, 200, 0.3);
+            border: 1px solid rgba(200, 200, 200, 0.5);
+        }
+
+        /* Chart Container */
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        .chart-container {
+            position: relative;
+            height: 450px;
+            margin-bottom: 1rem;
+        }
+
+        /* Range Bands Display */
+        .range-bands {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius-lg);
+            overflow-x: auto;
+        }
+        .range-band {
+            text-align: center;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            min-width: 80px;
+        }
+        .range-band.gray { background: rgba(158, 158, 158, 0.3); }
+        .range-band.yellow { background: rgba(255, 235, 59, 0.3); }
+        .range-band.orange { background: rgba(255, 152, 0, 0.3); }
+        .range-band.red { background: rgba(244, 67, 54, 0.3); }
+        .range-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .range-label {
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Contract Info */
+        .contract-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .info-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+        .info-card-title {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        .info-card-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .info-card-value.cyan { color: var(--info); }
+        .info-card-value.green { color: var(--success); }
+        .info-card-value.red { color: var(--danger); }
+
+        /* Current Price Marker */
+        .price-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(115, 103, 240, 0.2), rgba(0, 186, 209, 0.2));
+            border: 1px solid var(--primary);
+            border-radius: var(--radius-lg);
+            margin-bottom: 1rem;
+        }
+        .price-marker-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .price-marker-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .price-marker-change {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+        }
+        .price-marker-change.negative {
+            background: rgba(255, 76, 81, 0.15);
+            color: var(--danger);
+        }
+        .price-marker-change.positive {
+            background: rgba(40, 199, 111, 0.15);
+            color: var(--success);
+        }
+
+        /* Basis Grid Table */
+        .basis-section {
+            margin-top: 2rem;
+        }
+        .basis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .basis-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .basis-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .basis-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: var(--radius-xl);
+        }
+        .basis-stat {
+            text-align: center;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            min-width: 140px;
+            box-shadow: var(--shadow-sm);
+        }
+        .basis-stat.gc {
+            border-color: rgba(66, 165, 245, 0.4);
+            background: linear-gradient(135deg, rgba(66, 165, 245, 0.1), rgba(66, 165, 245, 0.05));
+        }
+        .basis-stat.xau {
+            border-color: rgba(255, 167, 38, 0.4);
+            background: linear-gradient(135deg, rgba(255, 167, 38, 0.1), rgba(255, 167, 38, 0.05));
+        }
+        .basis-stat.basis {
+            border-color: rgba(115, 103, 240, 0.4);
+            background: linear-gradient(135deg, rgba(115, 103, 240, 0.15), rgba(115, 103, 240, 0.05));
+        }
+        .basis-stat-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        .basis-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+        .basis-stat.gc .basis-stat-value {
+            color: #42A5F5;
+        }
+        .basis-stat.xau .basis-stat-value {
+            color: #FFA726;
+        }
+        .basis-stat.basis .basis-stat-value {
+            color: var(--primary);
+        }
+        .basis-stat-symbol {
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        .basis-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .range-selector-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .range-selector {
+            padding: 0.5rem 1rem;
+            background: rgba(18, 18, 46, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-size: 0.8125rem;
+            font-family: inherit;
+            cursor: pointer;
+            min-width: 140px;
+        }
+        .range-selector:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(115, 103, 240, 0.2);
+        }
+        .range-selector option {
+            background: var(--bg-secondary);
+        }
+
+        .basis-grid-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        .open-day-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, rgba(40, 199, 111, 0.15), rgba(40, 199, 111, 0.05));
+            border: 1px solid rgba(40, 199, 111, 0.3);
+            border-radius: var(--radius-lg);
+        }
+        .open-day-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .open-day-value {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--success);
+            font-family: 'Courier New', monospace;
+        }
+        .basis-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+        }
+        .basis-table th {
+            padding: 0.75rem;
+            text-align: center;
+            background: rgba(115, 103, 240, 0.1);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .basis-table td {
+            padding: 0.625rem 0.75rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+        .basis-table tr:hover {
+            background: rgba(115, 103, 240, 0.05);
+        }
+        .basis-table tr.major-zone {
+            background: rgba(115, 103, 240, 0.15);
+            border-left: 3px solid var(--primary);
+        }
+        .basis-table tr.major-zone td {
+            font-weight: 600;
+        }
+        .basis-table tr.current-zone {
+            background: rgba(40, 199, 111, 0.15);
+            border-left: 3px solid var(--success);
+        }
+        .basis-table .gc-strike {
+            color: var(--info);
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        .basis-table .xau-level {
+            color: var(--warning);
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        .basis-table .zone-type {
+            font-size: 0.6875rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+        }
+        .zone-type.z00 { background: rgba(244, 67, 54, 0.2); color: #EF5350; }
+        .zone-type.z25 { background: rgba(255, 152, 0, 0.2); color: #FFA726; }
+        .zone-type.z50 { background: rgba(255, 235, 59, 0.2); color: #FFEE58; }
+        .zone-type.z75 { background: rgba(76, 175, 80, 0.2); color: #66BB6A; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chart-container { height: 350px; }
+            .stats-row { gap: 1rem; }
+            .chart-legend { gap: 1rem; }
+            .basis-table { font-size: 0.75rem; }
+            .basis-table th, .basis-table td { padding: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">&#9670;</div>
+                    <span class="logo-text">GOLD<span class="logo-highlight">STAT</span></span>
+                </div>
+            </div>
+
+            <div class="market-selector-container">
+                <div class="market-selector-label">Select Market</div>
+                <select class="market-selector" id="marketSelector">
+                    <option value="xauusd">XAUUSD (CFD)</option>
+                    <option value="gc1">GC1! (Futures)</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" href="index.html" data-section="dashboard">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="analytics">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Analytics</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="cme-oi">
+                            <span class="nav-icon">&#9679;</span>
+                            <span class="nav-text">CME OI</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link active" href="cme-oi.html">
+                                <span class="submenu-dot"></span>
+                                <span>Intraday Volume</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="indicators">
+                            <span class="nav-icon">&#9881;</span>
+                            <span class="nav-text">Indicators</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="indicators.html">
+                                <span class="submenu-dot"></span>
+                                <span>MT4/MT5 Download</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="courses">
+                            <span class="nav-icon">&#9658;</span>
+                            <span class="nav-text">Courses</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="courses.html">
+                                <span class="submenu-dot"></span>
+                                <span>Video Courses</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="session">
+                            <span class="nav-icon">&#9200;</span>
+                            <span class="nav-text">Session</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="session-analysis.html">
+                                <span class="submenu-dot"></span>
+                                <span>Session Analysis</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9432;</span><span class="nav-text">Help</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">CME Open Interest</h2>
+                </div>
+                <div class="header-actions">
+                    <span class="header-date" id="headerDate"></span>
+                    <div class="market-badge" id="marketBadge">GC1!</div>
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span>Live Data</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                </div>
+
+                <div class="content-wrapper">
+                    <!-- Header Info -->
+                    <div class="oi-header">
+                        <div>
+                            <div class="oi-title">G1MG6 Intraday Volume</div>
+                            <div class="oi-subtitle">CME OI Day Gold (OG|GC) - 0.70 DTE</div>
+                        </div>
+                    </div>
+
+                    <!-- Current Price Marker -->
+                    <div class="price-marker">
+                        <span class="price-marker-label">Current Price:</span>
+                        <span class="price-marker-value" id="currentPrice">4716.8</span>
+                        <span class="price-marker-change negative" id="priceChange">-28.3</span>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div class="stats-row">
+                        <div class="stat-item">
+                            <span class="stat-label">Put:</span>
+                            <span class="stat-value put" id="totalPut">594</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Call:</span>
+                            <span class="stat-value call" id="totalCall">640</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Vol:</span>
+                            <span class="stat-value vol" id="volValue">62.98</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Vol Chg:</span>
+                            <span class="stat-value negative" id="volChange">-0.24</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Future Chg:</span>
+                            <span class="stat-value negative" id="futureChange">-28.3</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Chart Card -->
+                    <div class="chart-card">
+                        <!-- Legend -->
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-dot put"></div>
+                                <span>Put</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot call"></div>
+                                <span>Call</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-line"></div>
+                                <span>Vol Settle</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-box"></div>
+                                <span>Ranges</span>
+                            </div>
+                        </div>
+
+                        <!-- Range Bands -->
+                        <div class="range-bands">
+                            <div class="range-band gray">
+                                <div class="range-value">377.1</div>
+                                <div class="range-label">15&Delta;P</div>
+                            </div>
+                            <div class="range-band yellow">
+                                <div class="range-value">255.4</div>
+                                <div class="range-label">25&Delta;P</div>
+                            </div>
+                            <div class="range-band orange">
+                                <div class="range-value">130.4</div>
+                                <div class="range-label">35&Delta;P</div>
+                            </div>
+                            <div class="range-band red">
+                                <div class="range-value">130.4</div>
+                                <div class="range-label">45&Delta;P/C</div>
+                            </div>
+                            <div class="range-band orange">
+                                <div class="range-value">266.2</div>
+                                <div class="range-label">35&Delta;C</div>
+                            </div>
+                            <div class="range-band yellow">
+                                <div class="range-value">405.9</div>
+                                <div class="range-label">25&Delta;C</div>
+                            </div>
+                        </div>
+
+                        <!-- Chart -->
+                        <div class="chart-container">
+                            <canvas id="oiChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Contract Info Cards -->
+                    <div class="contract-info">
+                        <div class="info-card">
+                            <div class="info-card-title">Put/Call Ratio</div>
+                            <div class="info-card-value cyan" id="pcRatio">0.93</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-card-title">Max Pain Strike</div>
+                            <div class="info-card-value" id="maxPain">4700</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-card-title">Highest Put OI</div>
+                            <div class="info-card-value red" id="highestPut">4500 (60)</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-card-title">Highest Call OI</div>
+                            <div class="info-card-value green" id="highestCall">5000 (123)</div>
+                        </div>
+                    </div>
+
+                    <!-- Basis Grid Section -->
+                    <div class="basis-section">
+                        <div class="basis-header">
+                            <div>
+                                <div class="basis-title">GC Strike to XAUUSD Grid</div>
+                                <div class="basis-subtitle">Major OI Zones: 00 / 25 / 50 / 75 converted using H1 SMA20 Basis</div>
+                            </div>
+                            <div class="basis-controls">
+                                <label class="range-selector-label">Range:</label>
+                                <select id="rangeSelector" class="range-selector">
+                                    <option value="50">±50 (Zoom In)</option>
+                                    <option value="100">±100</option>
+                                    <option value="150" selected>±150 (Default)</option>
+                                    <option value="200">±200</option>
+                                    <option value="300">±300</option>
+                                    <option value="500">±500 (Zoom Out)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="basis-info">
+                            <div class="basis-stat gc">
+                                <div class="basis-stat-label">SMA20 GC (H1)</div>
+                                <div class="basis-stat-value" id="sma20GC">2760.50</div>
+                                <div class="basis-stat-symbol">COMEX Futures</div>
+                            </div>
+                            <div class="basis-stat" style="display: flex; align-items: center; padding: 0.5rem; min-width: auto; background: none; border: none; box-shadow: none;">
+                                <span style="font-size: 1.5rem; color: var(--text-muted);">−</span>
+                            </div>
+                            <div class="basis-stat xau">
+                                <div class="basis-stat-label">SMA20 XAUUSD (H1)</div>
+                                <div class="basis-stat-value" id="sma20XAU">2745.30</div>
+                                <div class="basis-stat-symbol">OANDA Spot CFD</div>
+                            </div>
+                            <div class="basis-stat" style="display: flex; align-items: center; padding: 0.5rem; min-width: auto; background: none; border: none; box-shadow: none;">
+                                <span style="font-size: 1.5rem; color: var(--text-muted);">=</span>
+                            </div>
+                            <div class="basis-stat basis">
+                                <div class="basis-stat-label">Basis</div>
+                                <div class="basis-stat-value" id="basisValue">15.20</div>
+                                <div class="basis-stat-symbol">GC − XAUUSD</div>
+                            </div>
+                        </div>
+
+                        <div class="basis-grid-card">
+                            <div class="open-day-display">
+                                <span class="open-day-label">Open Day XAUUSD (Center):</span>
+                                <span class="open-day-value" id="openDayXAU">2738.50</span>
+                            </div>
+                            <table class="basis-table">
+                                <thead>
+                                    <tr>
+                                        <th>Zone</th>
+                                        <th>GC Strike</th>
+                                        <th>XAUUSD Level</th>
+                                        <th>Distance from Open</th>
+                                        <th>Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="basisTableBody">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="cme-oi.js"></script>
+</body>
+</html>

@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Analysis - Gold Candle Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* Session Analysis Styles */
+        .session-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .session-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .session-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        .session-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+        .session-card.asian::before {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+        .session-card.london::before {
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        }
+        .session-card.newyork::before {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .session-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .asian .session-icon {
+            background: rgba(245, 158, 11, 0.15);
+        }
+        .london .session-icon {
+            background: rgba(59, 130, 246, 0.15);
+        }
+        .newyork .session-icon {
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .session-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        .session-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .session-time-local {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .session-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.25rem;
+        }
+        .session-stat {
+            text-align: center;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+        }
+        .session-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .session-stat-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+        }
+        .session-stat-value.green { color: var(--success); }
+        .session-stat-value.red { color: var(--danger); }
+        .session-stat-value.orange { color: #f59e0b; }
+        .session-stat-value.blue { color: #3b82f6; }
+
+        /* Session Timeline */
+        .timeline-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .timeline-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .timeline-legend {
+            display: flex;
+            gap: 1rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        .legend-color.asian { background: #f59e0b; }
+        .legend-color.london { background: #3b82f6; }
+        .legend-color.newyork { background: #10b981; }
+        .legend-color.overlap { background: linear-gradient(90deg, #3b82f6, #10b981); }
+
+        .timeline {
+            position: relative;
+            height: 60px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .timeline-bar {
+            position: absolute;
+            top: 10px;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: white;
+        }
+        .timeline-bar.asian {
+            left: 0%;
+            width: 33.33%;
+            background: rgba(245, 158, 11, 0.8);
+        }
+        .timeline-bar.london {
+            left: 33.33%;
+            width: 33.33%;
+            background: rgba(59, 130, 246, 0.8);
+        }
+        .timeline-bar.newyork {
+            left: 54.17%;
+            width: 33.33%;
+            background: rgba(16, 185, 129, 0.8);
+        }
+        .timeline-bar.overlap {
+            left: 54.17%;
+            width: 12.5%;
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.9), rgba(16, 185, 129, 0.9));
+            z-index: 1;
+        }
+
+        .timeline-hours {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            padding: 0 0.25rem;
+        }
+        .timeline-hour {
+            font-size: 0.625rem;
+            color: var(--text-muted);
+        }
+
+        /* Hourly Analysis */
+        .hourly-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .hourly-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 0.75rem;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .hourly-card:hover {
+            border-color: var(--primary);
+        }
+        .hourly-card.asian { border-top: 3px solid #f59e0b; }
+        .hourly-card.london { border-top: 3px solid #3b82f6; }
+        .hourly-card.newyork { border-top: 3px solid #10b981; }
+        .hourly-card.overlap { border-top: 3px solid #8b5cf6; }
+
+        .hourly-time {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        .hourly-range {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .hourly-volume {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        .hourly-bar {
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        .hourly-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .hourly-card.asian .hourly-bar-fill { background: #f59e0b; }
+        .hourly-card.london .hourly-bar-fill { background: #3b82f6; }
+        .hourly-card.newyork .hourly-bar-fill { background: #10b981; }
+        .hourly-card.overlap .hourly-bar-fill { background: #8b5cf6; }
+
+        /* Chart Container */
+        .chart-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+        }
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 250px;
+        }
+
+        /* Best Hour Highlight */
+        .best-hours-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .best-hours-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .best-hour-card {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            text-align: center;
+        }
+        .best-hour-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+        .best-hour-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .best-hour-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Period Selector */
+        .period-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .period-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .period-select {
+            width: auto;
+            min-width: 140px;
+            padding: 0.5rem 2rem 0.5rem 0.75rem;
+            background: rgba(18, 18, 46, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2300f5ff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 0.875rem;
+        }
+        .period-select:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.2);
+        }
+        .period-info {
+            font-size: 0.6875rem;
+            color: var(--neon-purple);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .session-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-row {
+                grid-template-columns: 1fr;
+            }
+            .best-hours-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+            .hourly-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .period-selector {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            .period-selector .period-label {
+                margin-left: 0 !important;
+            }
+            .period-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">&#9672;</div>
+                <div class="sidebar-brand">
+                    <h1>Gold Analysis</h1>
+                    <p>Multi-Market Dashboard v4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">&#9654;</button>
+
+            <!-- Market Selector -->
+            <div class="market-selector-container">
+                <div class="market-selector-label">Select Market</div>
+                <select class="market-selector" id="marketSelector">
+                    <option value="xauusd">XAUUSD (CFD)</option>
+                    <option value="gc1">GC1! (Futures)</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="dashboard" href="index.html">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="cme-oi">
+                            <span class="nav-icon">&#9679;</span>
+                            <span class="nav-text">CME OI</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="cme-oi.html">
+                                <span class="submenu-dot"></span>
+                                <span>Intraday Volume</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="indicators">
+                            <span class="nav-icon">&#9881;</span>
+                            <span class="nav-text">Indicators</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="indicators.html">
+                                <span class="submenu-dot"></span>
+                                <span>MT4/MT5 Download</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="courses">
+                            <span class="nav-icon">&#9658;</span>
+                            <span class="nav-text">Courses</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="courses.html">
+                                <span class="submenu-dot"></span>
+                                <span>Video Courses</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Session Analysis Menu -->
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="session">
+                            <span class="nav-icon">&#9200;</span>
+                            <span class="nav-text">Session</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link active" href="session-analysis.html">
+                                <span class="submenu-dot"></span>
+                                <span>Session Analysis</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9432;</span><span class="nav-text">Help</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">Session Analysis</h2>
+                </div>
+                <div class="header-actions">
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span>H1 Data Analysis</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                    <div class="blur-circle blur-pink"></div>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="loader"></div>
+                    <p class="loading-text">Loading H1 data...</p>
+                </div>
+
+                <div id="content" class="page-content hidden">
+                    <!-- Page Header -->
+                    <div class="page-header">
+                        <p class="page-subtitle">TRADING SESSIONS</p>
+                        <h1 class="page-title"><span class="gradient">Session</span> Analysis</h1>
+                        <p class="page-desc">Analyze gold price movements across Asian, London, and New York trading sessions</p>
+
+                        <!-- Period & View Selectors -->
+                        <div class="period-selector" style="margin-top: 1.5rem; justify-content: center;">
+                            <label class="period-label">Period:</label>
+                            <select class="period-select" id="periodSelect">
+                                <option value="30">Last 30 Days</option>
+                                <option value="90">Last 3 Months</option>
+                                <option value="180">Last 6 Months</option>
+                                <option value="365" selected>Last 1 Year</option>
+                                <option value="0">All Data</option>
+                            </select>
+                            <span class="period-info" id="periodInfo">(365 days)</span>
+
+                            <label class="period-label" style="margin-left: 1rem;">View:</label>
+                            <select class="period-select" id="viewSelect">
+                                <option value="overview" selected>Session Overview</option>
+                                <option value="hourly">Hourly Details</option>
+                                <option value="range">Range Analysis</option>
+                                <option value="volume">Volume Analysis</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Stats Summary -->
+                    <div class="stats-grid">
+                        <div class="stat-card cyan">
+                            <p class="stat-value white" id="totalCandles">-</p>
+                            <p class="stat-label">H1 Candles <span id="dataRangeText" style="font-size: 0.625rem; color: var(--text-muted);"></span></p>
+                        </div>
+                        <div class="stat-card green">
+                            <p class="stat-value green" id="avgRange">-</p>
+                            <p class="stat-label">Avg Hourly Range</p>
+                        </div>
+                        <div class="stat-card orange">
+                            <p class="stat-value orange" id="bestSession">-</p>
+                            <p class="stat-label">Most Active Session</p>
+                        </div>
+                        <div class="stat-card red">
+                            <p class="stat-value red" id="bestHour">-</p>
+                            <p class="stat-label">Best Trading Hour</p>
+                        </div>
+                    </div>
+
+                    <!-- Session Timeline -->
+                    <div class="timeline-container">
+                        <div class="timeline-header">
+                            <h3 class="timeline-title">24-Hour Session Timeline (Bangkok Time)</h3>
+                            <div class="timeline-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color asian"></div>
+                                    <span>Asian</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color london"></div>
+                                    <span>London</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color newyork"></div>
+                                    <span>New York</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color overlap"></div>
+                                    <span>Overlap</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="timeline">
+                            <div class="timeline-bar asian">Asian</div>
+                            <div class="timeline-bar london">London</div>
+                            <div class="timeline-bar newyork">New York</div>
+                            <div class="timeline-bar overlap">Overlap</div>
+                        </div>
+                        <div class="timeline-hours">
+                            <span class="timeline-hour">07:00</span>
+                            <span class="timeline-hour">11:00</span>
+                            <span class="timeline-hour">15:00</span>
+                            <span class="timeline-hour">19:00</span>
+                            <span class="timeline-hour">23:00</span>
+                            <span class="timeline-hour">03:00</span>
+                            <span class="timeline-hour">07:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Session Cards -->
+                    <div class="session-grid">
+                        <!-- Asian Session -->
+                        <div class="session-card asian">
+                            <div class="session-header">
+                                <div>
+                                    <h3 class="session-name">Asian Session</h3>
+                                    <p class="session-time">07:00 - 15:00 Bangkok</p>
+                                    <p class="session-time-local">00:00 - 08:00 UTC</p>
+                                </div>
+                                <div class="session-icon">&#127471;&#127477;</div>
+                            </div>
+                            <div class="session-stats">
+                                <div class="session-stat">
+                                    <div class="session-stat-value orange" id="asianRange">-</div>
+                                    <div class="session-stat-label">Avg Range</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value" id="asianVolume">-</div>
+                                    <div class="session-stat-label">Avg Volume</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value green" id="asianBullish">-</div>
+                                    <div class="session-stat-label">Bullish %</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value red" id="asianBearish">-</div>
+                                    <div class="session-stat-label">Bearish %</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- London Session -->
+                        <div class="session-card london">
+                            <div class="session-header">
+                                <div>
+                                    <h3 class="session-name">London Session</h3>
+                                    <p class="session-time">15:00 - 23:00 Bangkok</p>
+                                    <p class="session-time-local">08:00 - 16:00 UTC</p>
+                                </div>
+                                <div class="session-icon">&#127468;&#127463;</div>
+                            </div>
+                            <div class="session-stats">
+                                <div class="session-stat">
+                                    <div class="session-stat-value blue" id="londonRange">-</div>
+                                    <div class="session-stat-label">Avg Range</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value" id="londonVolume">-</div>
+                                    <div class="session-stat-label">Avg Volume</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value green" id="londonBullish">-</div>
+                                    <div class="session-stat-label">Bullish %</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value red" id="londonBearish">-</div>
+                                    <div class="session-stat-label">Bearish %</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- New York Session -->
+                        <div class="session-card newyork">
+                            <div class="session-header">
+                                <div>
+                                    <h3 class="session-name">New York Session</h3>
+                                    <p class="session-time">20:00 - 04:00 Bangkok</p>
+                                    <p class="session-time-local">13:00 - 21:00 UTC</p>
+                                </div>
+                                <div class="session-icon">&#127482;&#127480;</div>
+                            </div>
+                            <div class="session-stats">
+                                <div class="session-stat">
+                                    <div class="session-stat-value green" id="nyRange">-</div>
+                                    <div class="session-stat-label">Avg Range</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value" id="nyVolume">-</div>
+                                    <div class="session-stat-label">Avg Volume</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value green" id="nyBullish">-</div>
+                                    <div class="session-stat-label">Bullish %</div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-stat-value red" id="nyBearish">-</div>
+                                    <div class="session-stat-label">Bearish %</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Best Hours Section -->
+                    <div class="best-hours-section">
+                        <h3 class="chart-title">Best Trading Hours - Bangkok Time (Based on Range & Volume)</h3>
+                        <div class="best-hours-grid">
+                            <div class="best-hour-card">
+                                <div class="best-hour-label">Highest Range</div>
+                                <div class="best-hour-value" id="highestRangeHour">-</div>
+                                <div class="best-hour-desc" id="highestRangeValue">-</div>
+                            </div>
+                            <div class="best-hour-card">
+                                <div class="best-hour-label">Highest Volume</div>
+                                <div class="best-hour-value" id="highestVolumeHour">-</div>
+                                <div class="best-hour-desc" id="highestVolumeValue">-</div>
+                            </div>
+                            <div class="best-hour-card">
+                                <div class="best-hour-label">Best Overlap</div>
+                                <div class="best-hour-value" id="overlapHour">20:00-23:00</div>
+                                <div class="best-hour-desc" id="overlapDesc">London + NY (Bangkok)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hourly Analysis Grid -->
+                    <section class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Hourly Range Analysis (Bangkok Time)</h3>
+                        </div>
+                        <div class="hourly-grid" id="hourlyGrid">
+                            <!-- Generated by JavaScript -->
+                        </div>
+                    </section>
+
+                    <!-- Charts Row -->
+                    <div class="chart-row">
+                        <div class="chart-card">
+                            <h3 class="chart-title">Average Range by Hour (Bangkok Time)</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="rangeChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3 class="chart-title">Average Volume by Hour (Bangkok Time)</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="volumeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session Comparison Chart -->
+                    <div class="chart-card" style="margin-bottom: 2rem;">
+                        <h3 class="chart-title">Session Comparison</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="sessionChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        // Session definitions (UTC hours)
+        const SESSIONS = {
+            asian: { name: 'Asian', start: 0, end: 8, color: '#f59e0b' },
+            london: { name: 'London', start: 8, end: 16, color: '#3b82f6' },
+            newyork: { name: 'New York', start: 13, end: 21, color: '#10b981' }
+        };
+
+        // Data files
+        const H1_DATA_FILES = {
+            xauusd: 'xauusd_h1_data.csv',
+            gc1: 'gc1_h1_data.csv'
+        };
+
+        let sessionMarket = 'xauusd';
+        let h1Data = [];
+        let h1DataFull = []; // Store full data for filtering
+        let rangeChart, volumeChart, sessionChart;
+        let selectedPeriod = 365;
+        let selectedView = 'overview';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initSidebar();
+            initMarketSelector();
+            initPeriodSelector();
+            initViewSelector();
+            loadH1Data(sessionMarket);
+        });
+
+        function initPeriodSelector() {
+            const periodSelect = document.getElementById('periodSelect');
+            const periodInfo = document.getElementById('periodInfo');
+            if (periodSelect) {
+                periodSelect.addEventListener('change', function() {
+                    selectedPeriod = parseInt(this.value);
+                    const periodText = selectedPeriod === 0 ? 'All data' : `(${selectedPeriod} days)`;
+                    if (periodInfo) periodInfo.textContent = periodText;
+                    filterAndProcessData();
+                });
+            }
+        }
+
+        function initViewSelector() {
+            const viewSelect = document.getElementById('viewSelect');
+            if (viewSelect) {
+                viewSelect.addEventListener('change', function() {
+                    selectedView = this.value;
+                    updateViewDisplay();
+                });
+            }
+        }
+
+        function updateViewDisplay() {
+            // Get all sections
+            const sessionGrid = document.querySelector('.session-grid');
+            const timelineContainer = document.querySelector('.timeline-container');
+            const bestHoursSection = document.querySelector('.best-hours-section');
+            const hourlySection = document.querySelector('.section');
+            const chartRow = document.querySelector('.chart-row');
+            const sessionChartCard = document.querySelector('.chart-card[style*="margin-bottom: 2rem"]');
+
+            // Show all by default
+            const allSections = [sessionGrid, timelineContainer, bestHoursSection, chartRow, sessionChartCard];
+
+            switch(selectedView) {
+                case 'overview':
+                    // Show all sections
+                    allSections.forEach(el => { if(el) el.style.display = ''; });
+                    break;
+                case 'hourly':
+                    // Focus on hourly grid and charts
+                    if(sessionGrid) sessionGrid.style.display = 'none';
+                    if(timelineContainer) timelineContainer.style.display = '';
+                    if(bestHoursSection) bestHoursSection.style.display = '';
+                    if(chartRow) chartRow.style.display = '';
+                    if(sessionChartCard) sessionChartCard.style.display = 'none';
+                    break;
+                case 'range':
+                    // Focus on range analysis
+                    if(sessionGrid) sessionGrid.style.display = '';
+                    if(timelineContainer) timelineContainer.style.display = 'none';
+                    if(bestHoursSection) bestHoursSection.style.display = '';
+                    if(chartRow) chartRow.style.display = '';
+                    if(sessionChartCard) sessionChartCard.style.display = '';
+                    break;
+                case 'volume':
+                    // Focus on volume analysis
+                    if(sessionGrid) sessionGrid.style.display = '';
+                    if(timelineContainer) timelineContainer.style.display = 'none';
+                    if(bestHoursSection) bestHoursSection.style.display = '';
+                    if(chartRow) chartRow.style.display = '';
+                    if(sessionChartCard) sessionChartCard.style.display = '';
+                    break;
+            }
+        }
+
+        function filterAndProcessData() {
+            if (h1DataFull.length === 0) return;
+
+            if (selectedPeriod === 0) {
+                // All data
+                h1Data = [...h1DataFull];
+            } else {
+                // Filter by period
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - selectedPeriod);
+                h1Data = h1DataFull.filter(row => {
+                    const rowDate = new Date(row.datetime);
+                    return rowDate >= cutoffDate;
+                });
+            }
+
+            if (h1Data.length > 0) {
+                processData();
+            }
+        }
+
+        function initSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
+            }
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', () => {
+                    sidebar.classList.add('mobile-open');
+                    sidebarOverlay.classList.add('active');
+                });
+            }
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    sidebarOverlay.classList.remove('active');
+                });
+            }
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.parentElement.querySelector('.submenu')) {
+                        e.preventDefault();
+                        this.parentElement.classList.toggle('open');
+                    }
+                });
+            });
+        }
+
+        function initMarketSelector() {
+            const selector = document.getElementById('marketSelector');
+            if (selector) {
+                selector.addEventListener('change', function() {
+                    sessionMarket = this.value;
+                    loadH1Data(sessionMarket);
+                });
+            }
+        }
+
+        function loadH1Data(market) {
+            console.log('loadH1Data called with market:', market);
+
+            const loadingEl = document.getElementById('loading');
+            const contentEl = document.getElementById('content');
+
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (contentEl) contentEl.classList.add('hidden');
+
+            const dataFile = H1_DATA_FILES[market];
+            console.log('Loading file:', dataFile);
+
+            try {
+                Papa.parse(dataFile, {
+                    download: true,
+                    header: true,
+                    dynamicTyping: true,
+                    complete: function(results) {
+                        console.log('Papa.parse complete, rows:', results.data ? results.data.length : 0);
+                        if (results.data && results.data.length > 0) {
+                            h1DataFull = results.data.filter(row => row.datetime && row.open);
+                            console.log('Filtered h1DataFull rows:', h1DataFull.length);
+                            if (h1DataFull.length > 0) {
+                                filterAndProcessData();
+                                if (loadingEl) loadingEl.classList.add('hidden');
+                                if (contentEl) contentEl.classList.remove('hidden');
+                            } else {
+                                showDataError('No valid data found in CSV file');
+                            }
+                        } else {
+                            showDataError('CSV file is empty or invalid');
+                        }
+                    },
+                    error: function(error) {
+                        console.error('Papa.parse error:', error);
+                        showDataError('Failed to load CSV file: ' + (error.message || 'Unknown error'));
+                    }
+                });
+            } catch (e) {
+                console.error('Exception in loadH1Data:', e);
+                showDataError('Exception: ' + e.message);
+            }
+        }
+
+        function showDataError(message) {
+            console.error('showDataError:', message);
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) {
+                loadingEl.innerHTML = '<div style="text-align: center;"><div style="font-size: 3rem; margin-bottom: 1rem; color: var(--danger);">&#10006;</div><h3 style="color: var(--danger); margin-bottom: 0.5rem;">Error Loading Data</h3><p style="color: var(--text-muted);">' + message + '</p></div>';
+            }
+        }
+
+        function getHour(datetime) {
+            const date = new Date(datetime);
+            return date.getUTCHours();
+        }
+
+        // Convert UTC hour to Bangkok hour (UTC+7)
+        function utcToBangkok(utcHour) {
+            return (utcHour + 7) % 24;
+        }
+
+        // Format hour for display in Bangkok time
+        function formatBangkokHour(utcHour) {
+            const bkkHour = utcToBangkok(utcHour);
+            return bkkHour.toString().padStart(2, '0') + ':00';
+        }
+
+        function getSession(hour) {
+            if (hour >= 0 && hour < 8) return 'asian';
+            if (hour >= 8 && hour < 13) return 'london';
+            if (hour >= 13 && hour < 16) return 'overlap';
+            if (hour >= 16 && hour < 21) return 'newyork';
+            return 'asian'; // 21-24 considered late Asian
+        }
+
+        function processData() {
+            // Calculate hourly statistics
+            const hourlyStats = {};
+            for (let h = 0; h < 24; h++) {
+                hourlyStats[h] = { ranges: [], volumes: [], bullish: 0, bearish: 0, count: 0 };
+            }
+
+            h1Data.forEach(row => {
+                const hour = getHour(row.datetime);
+                const range = row.high - row.low;
+                const isBullish = row.close > row.open;
+
+                hourlyStats[hour].ranges.push(range);
+                hourlyStats[hour].volumes.push(row.volume || 0);
+                hourlyStats[hour].count++;
+                if (isBullish) hourlyStats[hour].bullish++;
+                else hourlyStats[hour].bearish++;
+            });
+
+            // Calculate averages
+            const hourlyAvg = {};
+            for (let h = 0; h < 24; h++) {
+                const stats = hourlyStats[h];
+                hourlyAvg[h] = {
+                    avgRange: stats.ranges.length > 0 ? stats.ranges.reduce((a, b) => a + b, 0) / stats.ranges.length : 0,
+                    avgVolume: stats.volumes.length > 0 ? stats.volumes.reduce((a, b) => a + b, 0) / stats.volumes.length : 0,
+                    bullishPct: stats.count > 0 ? (stats.bullish / stats.count * 100) : 50,
+                    bearishPct: stats.count > 0 ? (stats.bearish / stats.count * 100) : 50,
+                    count: stats.count
+                };
+            }
+
+            // Calculate session statistics
+            const sessionStats = {
+                asian: { ranges: [], volumes: [], bullish: 0, bearish: 0, count: 0 },
+                london: { ranges: [], volumes: [], bullish: 0, bearish: 0, count: 0 },
+                newyork: { ranges: [], volumes: [], bullish: 0, bearish: 0, count: 0 }
+            };
+
+            h1Data.forEach(row => {
+                const hour = getHour(row.datetime);
+                const range = row.high - row.low;
+                const isBullish = row.close > row.open;
+
+                // Asian: 0-7
+                if (hour >= 0 && hour < 8) {
+                    sessionStats.asian.ranges.push(range);
+                    sessionStats.asian.volumes.push(row.volume || 0);
+                    sessionStats.asian.count++;
+                    if (isBullish) sessionStats.asian.bullish++;
+                    else sessionStats.asian.bearish++;
+                }
+                // London: 8-15
+                if (hour >= 8 && hour < 16) {
+                    sessionStats.london.ranges.push(range);
+                    sessionStats.london.volumes.push(row.volume || 0);
+                    sessionStats.london.count++;
+                    if (isBullish) sessionStats.london.bullish++;
+                    else sessionStats.london.bearish++;
+                }
+                // New York: 13-20
+                if (hour >= 13 && hour < 21) {
+                    sessionStats.newyork.ranges.push(range);
+                    sessionStats.newyork.volumes.push(row.volume || 0);
+                    sessionStats.newyork.count++;
+                    if (isBullish) sessionStats.newyork.bullish++;
+                    else sessionStats.newyork.bearish++;
+                }
+            });
+
+            // Update UI
+            updateSummaryStats(hourlyAvg, sessionStats);
+            updateSessionCards(sessionStats);
+            updateHourlyGrid(hourlyAvg);
+            updateCharts(hourlyAvg, sessionStats);
+        }
+
+        function updateSummaryStats(hourlyAvg, sessionStats) {
+            document.getElementById('totalCandles').textContent = h1Data.length;
+
+            // Show data range
+            const dataRangeText = document.getElementById('dataRangeText');
+            if (dataRangeText && h1Data.length > 0) {
+                const firstDate = new Date(h1Data[0].datetime);
+                const lastDate = new Date(h1Data[h1Data.length - 1].datetime);
+                const formatDate = (d) => d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short' });
+                dataRangeText.textContent = `(${formatDate(firstDate)} - ${formatDate(lastDate)})`;
+            }
+
+            const totalRange = Object.values(hourlyAvg).reduce((sum, h) => sum + h.avgRange, 0);
+            const avgRange = totalRange / 24;
+            document.getElementById('avgRange').textContent = avgRange.toFixed(2);
+
+            // Find best session
+            const sessionAvgRanges = {
+                asian: sessionStats.asian.ranges.length > 0 ? sessionStats.asian.ranges.reduce((a, b) => a + b, 0) / sessionStats.asian.ranges.length : 0,
+                london: sessionStats.london.ranges.length > 0 ? sessionStats.london.ranges.reduce((a, b) => a + b, 0) / sessionStats.london.ranges.length : 0,
+                newyork: sessionStats.newyork.ranges.length > 0 ? sessionStats.newyork.ranges.reduce((a, b) => a + b, 0) / sessionStats.newyork.ranges.length : 0
+            };
+            const bestSession = Object.entries(sessionAvgRanges).sort((a, b) => b[1] - a[1])[0][0];
+            const sessionNames = { asian: 'Asian', london: 'London', newyork: 'New York' };
+            document.getElementById('bestSession').textContent = sessionNames[bestSession];
+
+            // Find best hour
+            let bestHour = 0;
+            let bestHourRange = 0;
+            for (let h = 0; h < 24; h++) {
+                if (hourlyAvg[h].avgRange > bestHourRange) {
+                    bestHourRange = hourlyAvg[h].avgRange;
+                    bestHour = h;
+                }
+            }
+            document.getElementById('bestHour').textContent = formatBangkokHour(bestHour);
+
+            // Best hours section
+            document.getElementById('highestRangeHour').textContent = formatBangkokHour(bestHour);
+            document.getElementById('highestRangeValue').textContent = `Avg ${bestHourRange.toFixed(2)} pts`;
+
+            let bestVolHour = 0;
+            let bestVolume = 0;
+            for (let h = 0; h < 24; h++) {
+                if (hourlyAvg[h].avgVolume > bestVolume) {
+                    bestVolume = hourlyAvg[h].avgVolume;
+                    bestVolHour = h;
+                }
+            }
+            document.getElementById('highestVolumeHour').textContent = formatBangkokHour(bestVolHour);
+            document.getElementById('highestVolumeValue').textContent = `Avg ${Math.round(bestVolume).toLocaleString()}`;
+        }
+
+        function updateSessionCards(sessionStats) {
+            // Asian
+            const asianAvgRange = sessionStats.asian.ranges.length > 0 ? sessionStats.asian.ranges.reduce((a, b) => a + b, 0) / sessionStats.asian.ranges.length : 0;
+            const asianAvgVol = sessionStats.asian.volumes.length > 0 ? sessionStats.asian.volumes.reduce((a, b) => a + b, 0) / sessionStats.asian.volumes.length : 0;
+            document.getElementById('asianRange').textContent = asianAvgRange.toFixed(2);
+            document.getElementById('asianVolume').textContent = Math.round(asianAvgVol).toLocaleString();
+            document.getElementById('asianBullish').textContent = (sessionStats.asian.count > 0 ? (sessionStats.asian.bullish / sessionStats.asian.count * 100) : 0).toFixed(1) + '%';
+            document.getElementById('asianBearish').textContent = (sessionStats.asian.count > 0 ? (sessionStats.asian.bearish / sessionStats.asian.count * 100) : 0).toFixed(1) + '%';
+
+            // London
+            const londonAvgRange = sessionStats.london.ranges.length > 0 ? sessionStats.london.ranges.reduce((a, b) => a + b, 0) / sessionStats.london.ranges.length : 0;
+            const londonAvgVol = sessionStats.london.volumes.length > 0 ? sessionStats.london.volumes.reduce((a, b) => a + b, 0) / sessionStats.london.volumes.length : 0;
+            document.getElementById('londonRange').textContent = londonAvgRange.toFixed(2);
+            document.getElementById('londonVolume').textContent = Math.round(londonAvgVol).toLocaleString();
+            document.getElementById('londonBullish').textContent = (sessionStats.london.count > 0 ? (sessionStats.london.bullish / sessionStats.london.count * 100) : 0).toFixed(1) + '%';
+            document.getElementById('londonBearish').textContent = (sessionStats.london.count > 0 ? (sessionStats.london.bearish / sessionStats.london.count * 100) : 0).toFixed(1) + '%';
+
+            // New York
+            const nyAvgRange = sessionStats.newyork.ranges.length > 0 ? sessionStats.newyork.ranges.reduce((a, b) => a + b, 0) / sessionStats.newyork.ranges.length : 0;
+            const nyAvgVol = sessionStats.newyork.volumes.length > 0 ? sessionStats.newyork.volumes.reduce((a, b) => a + b, 0) / sessionStats.newyork.volumes.length : 0;
+            document.getElementById('nyRange').textContent = nyAvgRange.toFixed(2);
+            document.getElementById('nyVolume').textContent = Math.round(nyAvgVol).toLocaleString();
+            document.getElementById('nyBullish').textContent = (sessionStats.newyork.count > 0 ? (sessionStats.newyork.bullish / sessionStats.newyork.count * 100) : 0).toFixed(1) + '%';
+            document.getElementById('nyBearish').textContent = (sessionStats.newyork.count > 0 ? (sessionStats.newyork.bearish / sessionStats.newyork.count * 100) : 0).toFixed(1) + '%';
+        }
+
+        function updateHourlyGrid(hourlyAvg) {
+            const grid = document.getElementById('hourlyGrid');
+            const maxRange = Math.max(...Object.values(hourlyAvg).map(h => h.avgRange));
+
+            // Create array of hours sorted by Bangkok time (start from 07:00 Bangkok = 00:00 UTC)
+            let html = '';
+            for (let h = 0; h < 24; h++) {
+                const session = getSession(h);
+                const stats = hourlyAvg[h];
+                const barWidth = maxRange > 0 ? (stats.avgRange / maxRange * 100) : 0;
+                const bkkHour = utcToBangkok(h);
+
+                html += `
+                    <div class="hourly-card ${session}">
+                        <div class="hourly-time">${bkkHour.toString().padStart(2, '0')}:00</div>
+                        <div class="hourly-range">${stats.avgRange.toFixed(1)}</div>
+                        <div class="hourly-volume">Vol: ${Math.round(stats.avgVolume / 1000)}K</div>
+                        <div class="hourly-bar">
+                            <div class="hourly-bar-fill" style="width: ${barWidth}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            grid.innerHTML = html;
+        }
+
+        function updateCharts(hourlyAvg, sessionStats) {
+            // Labels in Bangkok time
+            const hours = Array.from({ length: 24 }, (_, i) => formatBangkokHour(i));
+            const ranges = Array.from({ length: 24 }, (_, i) => hourlyAvg[i].avgRange);
+            const volumes = Array.from({ length: 24 }, (_, i) => hourlyAvg[i].avgVolume);
+
+            // Background colors by session
+            const bgColors = hours.map((_, i) => {
+                const session = getSession(i);
+                if (session === 'asian') return 'rgba(245, 158, 11, 0.7)';
+                if (session === 'london') return 'rgba(59, 130, 246, 0.7)';
+                if (session === 'overlap') return 'rgba(139, 92, 246, 0.7)';
+                if (session === 'newyork') return 'rgba(16, 185, 129, 0.7)';
+                return 'rgba(115, 103, 240, 0.7)';
+            });
+
+            // Range Chart
+            if (rangeChart) rangeChart.destroy();
+            rangeChart = new Chart(document.getElementById('rangeChart'), {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Avg Range',
+                        data: ranges,
+                        backgroundColor: bgColors,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)' }
+                        }
+                    }
+                }
+            });
+
+            // Volume Chart
+            if (volumeChart) volumeChart.destroy();
+            volumeChart = new Chart(document.getElementById('volumeChart'), {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Avg Volume',
+                        data: volumes,
+                        backgroundColor: bgColors,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: {
+                                color: 'rgba(255,255,255,0.5)',
+                                callback: v => (v / 1000).toFixed(0) + 'K'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Session Comparison Chart
+            const sessionAvgRanges = {
+                Asian: sessionStats.asian.ranges.length > 0 ? sessionStats.asian.ranges.reduce((a, b) => a + b, 0) / sessionStats.asian.ranges.length : 0,
+                London: sessionStats.london.ranges.length > 0 ? sessionStats.london.ranges.reduce((a, b) => a + b, 0) / sessionStats.london.ranges.length : 0,
+                'New York': sessionStats.newyork.ranges.length > 0 ? sessionStats.newyork.ranges.reduce((a, b) => a + b, 0) / sessionStats.newyork.ranges.length : 0
+            };
+            const sessionAvgVolumes = {
+                Asian: sessionStats.asian.volumes.length > 0 ? sessionStats.asian.volumes.reduce((a, b) => a + b, 0) / sessionStats.asian.volumes.length : 0,
+                London: sessionStats.london.volumes.length > 0 ? sessionStats.london.volumes.reduce((a, b) => a + b, 0) / sessionStats.london.volumes.length : 0,
+                'New York': sessionStats.newyork.volumes.length > 0 ? sessionStats.newyork.volumes.reduce((a, b) => a + b, 0) / sessionStats.newyork.volumes.length : 0
+            };
+
+            if (sessionChart) sessionChart.destroy();
+            sessionChart = new Chart(document.getElementById('sessionChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Asian', 'London', 'New York'],
+                    datasets: [
+                        {
+                            label: 'Avg Range',
+                            data: Object.values(sessionAvgRanges),
+                            backgroundColor: ['rgba(245, 158, 11, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)'],
+                            borderRadius: 4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Avg Volume',
+                            data: Object.values(sessionAvgVolumes),
+                            backgroundColor: ['rgba(245, 158, 11, 0.3)', 'rgba(59, 130, 246, 0.3)', 'rgba(16, 185, 129, 0.3)'],
+                            borderColor: ['#f59e0b', '#3b82f6', '#10b981'],
+                            borderWidth: 2,
+                            borderRadius: 4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: 'rgba(255,255,255,0.7)' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.7)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)' },
+                            title: { display: true, text: 'Range', color: 'rgba(255,255,255,0.5)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                color: 'rgba(255,255,255,0.5)',
+                                callback: v => (v / 1000).toFixed(0) + 'K'
+                            },
+                            title: { display: true, text: 'Volume', color: 'rgba(255,255,255,0.5)' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

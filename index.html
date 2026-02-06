@@ -114,7 +114,7 @@
         .col-5 { grid-column: span 5; }
 
         /* Candle Type Cards */
-        .candle-types-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+        .candle-types-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.25rem; }
         .candle-type-card {
             background: var(--bg-card);
             backdrop-filter: blur(20px);
@@ -168,7 +168,117 @@
             margin-left: 0.5rem;
         }
 
-        @media (max-width: 1200px) { .candle-types-grid { grid-template-columns: repeat(2, 1fr); } }
+        /* Price Chart Section */
+        .price-chart-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .price-chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.25rem;
+        }
+        .price-info {
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+        }
+        .current-price-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+        .current-price-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .price-change-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+        }
+        .price-change-badge.positive {
+            background: rgba(40, 199, 111, 0.15);
+            color: var(--neon-green);
+        }
+        .price-change-badge.negative {
+            background: rgba(255, 76, 81, 0.15);
+            color: var(--neon-red);
+        }
+        .chart-stats-row {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.8125rem;
+        }
+        .chart-stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+        .chart-stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .chart-stat-dot.bullish { background: var(--neon-green); }
+        .chart-stat-dot.bearish { background: var(--neon-red); }
+
+        /* Full Width Mini Chart */
+        .full-mini-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 3px;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            min-height: 180px;
+            margin-bottom: 0.75rem;
+        }
+        .full-mini-candle {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .full-mini-candle-wick {
+            position: absolute;
+            width: 1px;
+        }
+        .full-mini-candle-body {
+            position: absolute;
+            width: 6px;
+            border-radius: 1px;
+        }
+        .full-mini-candle.bullish .full-mini-candle-wick,
+        .full-mini-candle.bullish .full-mini-candle-body {
+            background: var(--neon-green);
+        }
+        .full-mini-candle.bearish .full-mini-candle-wick,
+        .full-mini-candle.bearish .full-mini-candle-body {
+            background: var(--neon-red);
+        }
+        .full-mini-candle.current .full-mini-candle-body {
+            box-shadow: 0 0 10px currentColor;
+        }
+        .chart-axis {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 1400px) { .candle-types-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media (max-width: 1200px) { .candle-types-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 900px) { .candle-types-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 1024px) { .grid-12 { grid-template-columns: 1fr; } .col-3, .col-4, .col-5 { grid-column: span 1; } }
         @media (max-width: 480px) { .candle-types-grid { grid-template-columns: 1fr; } .info-grid { grid-template-columns: 1fr; } }
     </style>
@@ -269,6 +379,62 @@
                             <a class="submenu-link" href="daily-plan.html">
                                 <span class="submenu-dot"></span>
                                 <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="cme-oi">
+                            <span class="nav-icon">&#9679;</span>
+                            <span class="nav-text">CME OI</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="cme-oi.html">
+                                <span class="submenu-dot"></span>
+                                <span>Intraday Volume</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="indicators">
+                            <span class="nav-icon">&#9881;</span>
+                            <span class="nav-text">Indicators</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="indicators.html">
+                                <span class="submenu-dot"></span>
+                                <span>MT4/MT5 Download</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="courses">
+                            <span class="nav-icon">&#9658;</span>
+                            <span class="nav-text">Courses</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="courses.html">
+                                <span class="submenu-dot"></span>
+                                <span>Video Courses</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="session">
+                            <span class="nav-icon">&#9200;</span>
+                            <span class="nav-text">Session</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="session-analysis.html">
+                                <span class="submenu-dot"></span>
+                                <span>Session Analysis</span>
                             </a>
                         </div>
                     </div>
@@ -374,57 +540,37 @@
                         </div>
                     </section>
 
-                    <!-- Market Overview -->
-                    <section id="overview" class="section">
-                        <div class="section-header"><h3 class="section-title">Market Overview</h3></div>
-                        <div class="grid grid-2">
-                            <div class="glass-card">
-                                <div class="card-header">
-                                    <span class="card-title">Overall Market Sentiment</span>
-                                    <div class="legend">
-                                        <div class="legend-item"><div class="legend-dot" style="background: var(--neon-cyan)"></div><span class="legend-text">Bullish</span></div>
-                                        <div class="legend-item"><div class="legend-dot" style="background: var(--neon-green)"></div><span class="legend-text">Bearish</span></div>
-                                    </div>
+                    <!-- Price Chart Section -->
+                    <section class="price-chart-section">
+                        <div class="price-chart-header">
+                            <div>
+                                <p class="current-price-label">Current Price</p>
+                                <div class="price-info">
+                                    <span class="current-price-value" id="currentPriceValue">$-</span>
+                                    <span class="price-change-badge" id="priceChangeBadge">-</span>
                                 </div>
-                                <div class="chart-container"><canvas id="sentimentChart"></canvas></div>
                             </div>
-                            <div class="glass-card">
-                                <div class="card-header">
-                                    <span class="card-title">Candle Type Distribution</span>
-                                    <span class="card-badge">8 Types</span>
+                            <div class="chart-stats-row">
+                                <div class="chart-stat-item">
+                                    <span class="chart-stat-dot bullish"></span>
+                                    <span>Bullish: <strong id="chartBullish">-</strong></span>
                                 </div>
-                                <div class="chart-container"><canvas id="typeDistributionChart"></canvas></div>
+                                <div class="chart-stat-item">
+                                    <span class="chart-stat-dot bearish"></span>
+                                    <span>Bearish: <strong id="chartBearish">-</strong></span>
+                                </div>
+                                <div class="chart-stat-item">
+                                    <span>Avg Range: <strong id="chartAvgRange">-</strong></span>
+                                </div>
                             </div>
                         </div>
-                    </section>
-
-                    <!-- Distance Analysis -->
-                    <section id="distance" class="section">
-                        <div class="section-header">
-                            <h3 class="section-title">Average Distance by Type</h3>
-                            <div class="period-selector">
-                                <label class="period-label">Period:</label>
-                                <select class="period-select" id="distancePeriodSelect">
-                                    <option value="365" selected>1 Year</option>
-                                    <option value="730">2 Years</option>
-                                    <option value="1095">3 Years</option>
-                                    <option value="1825">5 Years</option>
-                                    <option value="3650">10 Years</option>
-                                </select>
-                                <span class="period-info" id="distancePeriodInfo">(365 days)</span>
-                            </div>
+                        <div class="full-mini-chart" id="fullMiniChart">
+                            <!-- Generated by JS -->
                         </div>
-                        <div class="glass-card">
-                            <div class="card-header">
-                                <div class="legend">
-                                    <div class="legend-item"><div class="legend-dot" style="background: #3b82f6"></div><span class="legend-text">high_open_dist</span></div>
-                                    <div class="legend-item"><div class="legend-dot" style="background: #a855f7"></div><span class="legend-text">upper_wick</span></div>
-                                    <div class="legend-item"><div class="legend-dot" style="background: #9ca3af"></div><span class="legend-text">body_size</span></div>
-                                    <div class="legend-item"><div class="legend-dot" style="background: #fbbf24"></div><span class="legend-text">lower_wick</span></div>
-                                    <div class="legend-item"><div class="legend-dot" style="background: #f97316"></div><span class="legend-text">open_low_dist</span></div>
-                                </div>
-                            </div>
-                            <div class="chart-container short"><canvas id="avgDistanceChart"></canvas></div>
+                        <div class="chart-axis">
+                            <span id="chartStartDate">-</span>
+                            <span>Last 50 Candles</span>
+                            <span id="chartEndDate">-</span>
                         </div>
                     </section>
 
@@ -472,6 +618,60 @@
                         </div>
                     </section>
 
+                    <!-- Market Overview -->
+                    <section id="overview" class="section">
+                        <div class="section-header"><h3 class="section-title">Market Overview</h3></div>
+                        <div class="grid grid-2">
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <span class="card-title">Overall Market Sentiment</span>
+                                    <div class="legend">
+                                        <div class="legend-item"><div class="legend-dot" style="background: var(--neon-cyan)"></div><span class="legend-text">Bullish</span></div>
+                                        <div class="legend-item"><div class="legend-dot" style="background: var(--neon-green)"></div><span class="legend-text">Bearish</span></div>
+                                    </div>
+                                </div>
+                                <div class="chart-container"><canvas id="sentimentChart"></canvas></div>
+                            </div>
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <span class="card-title">Candle Type Distribution</span>
+                                    <span class="card-badge">10 Types</span>
+                                </div>
+                                <div class="chart-container"><canvas id="typeDistributionChart"></canvas></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Distance Analysis -->
+                    <section id="distance" class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">Average Distance by Type</h3>
+                            <div class="period-selector">
+                                <label class="period-label">Period:</label>
+                                <select class="period-select" id="distancePeriodSelect">
+                                    <option value="365" selected>1 Year</option>
+                                    <option value="730">2 Years</option>
+                                    <option value="1095">3 Years</option>
+                                    <option value="1825">5 Years</option>
+                                    <option value="3650">10 Years</option>
+                                </select>
+                                <span class="period-info" id="distancePeriodInfo">(365 days)</span>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <div class="legend">
+                                    <div class="legend-item"><div class="legend-dot" style="background: #3b82f6"></div><span class="legend-text">high_open_dist</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: #a855f7"></div><span class="legend-text">upper_wick</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: #9ca3af"></div><span class="legend-text">body_size</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: #fbbf24"></div><span class="legend-text">lower_wick</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: #f97316"></div><span class="legend-text">open_low_dist</span></div>
+                                </div>
+                            </div>
+                            <div class="chart-container short"><canvas id="avgDistanceChart"></canvas></div>
+                        </div>
+                    </section>
+
                     <!-- Candle Types Analysis -->
                     <section id="candle-types" class="section">
                         <div class="section-header">
@@ -488,7 +688,7 @@
                                 <span class="period-info" id="candleTypesPeriodInfo">(365 days)</span>
                             </div>
                         </div>
-                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">8 candlestick patterns classified by body ratio and wick characteristics</p>
+                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">10 candlestick patterns classified by body ratio and wick characteristics</p>
                         <div class="candle-types-grid" id="candleTypesGrid"></div>
                     </section>
                 </div>

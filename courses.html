@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Courses - Gold Candle Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* Course Page Styles */
+        .courses-hero {
+            background: linear-gradient(135deg, rgba(115, 103, 240, 0.15), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(115, 103, 240, 0.3);
+            border-radius: var(--radius-xl);
+            padding: 3rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .courses-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(115, 103, 240, 0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .courses-hero h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+        .courses-hero p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Category Tabs */
+        .category-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .category-tab {
+            padding: 0.625rem 1.25rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        .category-tab:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .category-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .category-tab .count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            font-size: 0.6875rem;
+            margin-left: 0.5rem;
+        }
+        .category-tab:not(.active) .count {
+            background: var(--bg-secondary);
+        }
+
+        /* Course Grid */
+        .courses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Course Card */
+        .course-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+        .course-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(115, 103, 240, 0.15);
+        }
+
+        /* Video Thumbnail */
+        .course-thumbnail {
+            position: relative;
+            height: 180px;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            overflow: hidden;
+        }
+        .course-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .course-thumbnail .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(115, 103, 240, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .course-thumbnail .play-button:hover {
+            background: var(--primary);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        .course-thumbnail .play-button::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 18px solid white;
+            border-top: 11px solid transparent;
+            border-bottom: 11px solid transparent;
+            margin-left: 4px;
+        }
+        .course-thumbnail .duration {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .course-thumbnail .course-level {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .level-beginner {
+            background: rgba(40, 199, 111, 0.9);
+            color: white;
+        }
+        .level-intermediate {
+            background: rgba(255, 159, 67, 0.9);
+            color: white;
+        }
+        .level-advanced {
+            background: rgba(255, 76, 81, 0.9);
+            color: white;
+        }
+        .level-pro {
+            background: rgba(115, 103, 240, 0.9);
+            color: white;
+        }
+
+        /* Course Content */
+        .course-content {
+            padding: 1.25rem;
+        }
+        .course-category {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        .course-title {
+            font-size: 1.0625rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+        .course-desc {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Course Meta */
+        .course-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .meta-icon {
+            font-size: 0.875rem;
+        }
+
+        /* Course Progress */
+        .course-progress {
+            margin-bottom: 1rem;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.375rem;
+        }
+        .progress-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+        .progress-percent {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .progress-bar {
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #a855f7);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        /* Course Footer */
+        .course-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .course-instructor {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .instructor-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+        }
+        .instructor-name {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .course-price {
+            text-align: right;
+        }
+        .price-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+        .price-value.premium {
+            color: var(--primary);
+        }
+        .price-original {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        /* Course Actions */
+        .course-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .btn-course {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            border: none;
+        }
+        .btn-course.primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-course.primary:hover {
+            background: var(--primary-dark);
+        }
+        .btn-course.secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-course.secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Featured Course */
+        .featured-course {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            box-shadow: 0 8px 32px rgba(115, 103, 240, 0.2);
+        }
+        .featured-thumbnail {
+            position: relative;
+            min-height: 300px;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+        }
+        .featured-thumbnail .play-button {
+            width: 80px;
+            height: 80px;
+        }
+        .featured-badge {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            color: white;
+            padding: 0.375rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .featured-content {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .featured-content .course-category {
+            font-size: 0.75rem;
+        }
+        .featured-content .course-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .featured-content .course-desc {
+            -webkit-line-clamp: 4;
+            margin-bottom: 1.5rem;
+        }
+        .featured-stats {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .featured-stat {
+            text-align: center;
+        }
+        .featured-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .featured-stat-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Section Header */
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .section-header-row h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .view-all-link {
+            font-size: 0.8125rem;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .view-all-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Learning Path */
+        .learning-path {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .path-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+        .path-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        .path-desc {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+        .path-steps {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }
+        .path-step {
+            flex: 0 0 200px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            position: relative;
+        }
+        .path-step::after {
+            content: '→';
+            position: absolute;
+            right: -1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+        .path-step:last-child::after {
+            display: none;
+        }
+        .path-step-number {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+        .path-step-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        .path-step-courses {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+        .path-step.completed .path-step-number {
+            background: var(--success);
+        }
+        .path-step.current {
+            border-color: var(--primary);
+            background: rgba(115, 103, 240, 0.05);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .featured-course {
+                grid-template-columns: 1fr;
+            }
+            .featured-thumbnail {
+                min-height: 200px;
+            }
+        }
+        @media (max-width: 768px) {
+            .courses-grid {
+                grid-template-columns: 1fr;
+            }
+            .courses-hero {
+                padding: 2rem 1.5rem;
+            }
+            .courses-hero h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">&#9672;</div>
+                <div class="sidebar-brand">
+                    <h1>Gold Analysis</h1>
+                    <p>Multi-Market Dashboard v4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">&#9654;</button>
+
+            <!-- Market Selector -->
+            <div class="market-selector-container">
+                <div class="market-selector-label">Select Market</div>
+                <select class="market-selector" id="marketSelector">
+                    <option value="xauusd">XAUUSD (CFD)</option>
+                    <option value="gc1">GC1! (Futures)</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Main Menu</span></div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="dashboard" href="index.html">
+                            <span class="nav-icon">&#9632;</span>
+                            <span class="nav-text">Dashboard</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="history">
+                            <span class="nav-icon">&#9201;</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Data</span>
+                            </a>
+                            <a class="submenu-link" href="weekly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Weekly Summary</span>
+                            </a>
+                            <a class="submenu-link" href="monthly.html">
+                                <span class="submenu-dot"></span>
+                                <span>Monthly Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="trading">
+                            <span class="nav-icon">&#9733;</span>
+                            <span class="nav-text">Trading</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="daily-plan.html">
+                                <span class="submenu-dot"></span>
+                                <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="cme-oi">
+                            <span class="nav-icon">&#9679;</span>
+                            <span class="nav-text">CME OI</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="cme-oi.html">
+                                <span class="submenu-dot"></span>
+                                <span>Intraday Volume</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="indicators">
+                            <span class="nav-icon">&#9881;</span>
+                            <span class="nav-text">Indicators</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="indicators.html">
+                                <span class="submenu-dot"></span>
+                                <span>MT4/MT5 Download</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Courses Menu -->
+                    <div class="nav-item open">
+                        <a class="nav-link active" data-section="courses">
+                            <span class="nav-icon">&#9658;</span>
+                            <span class="nav-text">Courses</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link active" href="courses.html">
+                                <span class="submenu-dot"></span>
+                                <span>Video Courses</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="session">
+                            <span class="nav-icon">&#9200;</span>
+                            <span class="nav-text">Session</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="session-analysis.html">
+                                <span class="submenu-dot"></span>
+                                <span>Session Analysis</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Compare</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="compare">
+                            <span class="nav-icon">&#8596;</span>
+                            <span class="nav-text">Compare</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="compare-side-by-side.html">
+                                <span class="submenu-dot"></span>
+                                <span>Side-by-Side</span>
+                            </a>
+                            <a class="submenu-link" href="compare-correlation.html">
+                                <span class="submenu-dot"></span>
+                                <span>Correlation</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title"><span>Tools</span></div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9881;</span><span class="nav-text">Settings</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#10066;</span><span class="nav-text">Export Data</span></a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link"><span class="nav-icon">&#9432;</span><span class="nav-text">Help</span></a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="main-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">&#9776;</button>
+                    <h2 class="header-title">Video Courses</h2>
+                </div>
+                <div class="header-actions">
+                    <div class="header-badge">
+                        <div class="status-indicator"></div>
+                        <span>15 Courses Available</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-body">
+                <div class="bg-effects">
+                    <div class="blur-circle blur-cyan"></div>
+                    <div class="blur-circle blur-purple"></div>
+                    <div class="blur-circle blur-pink"></div>
+                </div>
+
+                <div class="page-content">
+                    <!-- Page Header -->
+                    <div class="page-header">
+                        <p class="page-subtitle">FOREX EDUCATION</p>
+                        <h1 class="page-title"><span class="gradient">Video</span> Courses</h1>
+                        <p class="page-desc">Learn forex trading from beginner to advanced with our comprehensive video courses</p>
+                    </div>
+
+                    <!-- Hero Section -->
+                    <div class="courses-hero">
+                        <h2>Master Gold Trading in 2024</h2>
+                        <p>Join 2,500+ traders who have improved their skills with our structured learning paths and expert-led video courses.</p>
+                    </div>
+
+                    <!-- Stats Summary -->
+                    <div class="stats-grid">
+                        <div class="stat-card cyan">
+                            <p class="stat-value white">15</p>
+                            <p class="stat-label">Total Courses</p>
+                        </div>
+                        <div class="stat-card green">
+                            <p class="stat-value green">120+</p>
+                            <p class="stat-label">Video Lessons</p>
+                        </div>
+                        <div class="stat-card orange">
+                            <p class="stat-value orange">45h</p>
+                            <p class="stat-label">Total Duration</p>
+                        </div>
+                        <div class="stat-card red">
+                            <p class="stat-value red">2,500+</p>
+                            <p class="stat-label">Students Enrolled</p>
+                        </div>
+                    </div>
+
+                    <!-- Learning Path -->
+                    <div class="learning-path">
+                        <div class="path-header">
+                            <div>
+                                <h3 class="path-title">Gold Trading Mastery Path</h3>
+                                <p class="path-desc">Follow our recommended learning path to become a professional gold trader</p>
+                            </div>
+                            <span class="indicator-badge badge-new">Recommended</span>
+                        </div>
+                        <div class="path-steps">
+                            <div class="path-step completed">
+                                <div class="path-step-number">1</div>
+                                <div class="path-step-title">Forex Basics</div>
+                                <div class="path-step-courses">3 courses</div>
+                            </div>
+                            <div class="path-step completed">
+                                <div class="path-step-number">2</div>
+                                <div class="path-step-title">Technical Analysis</div>
+                                <div class="path-step-courses">4 courses</div>
+                            </div>
+                            <div class="path-step current">
+                                <div class="path-step-number">3</div>
+                                <div class="path-step-title">Gold Specific</div>
+                                <div class="path-step-courses">3 courses</div>
+                            </div>
+                            <div class="path-step">
+                                <div class="path-step-number">4</div>
+                                <div class="path-step-title">Risk Management</div>
+                                <div class="path-step-courses">2 courses</div>
+                            </div>
+                            <div class="path-step">
+                                <div class="path-step-number">5</div>
+                                <div class="path-step-title">Advanced Strategy</div>
+                                <div class="path-step-courses">3 courses</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Tabs -->
+                    <div class="category-tabs">
+                        <button class="category-tab active" data-category="all">All Courses <span class="count">15</span></button>
+                        <button class="category-tab" data-category="basics">Forex Basics <span class="count">3</span></button>
+                        <button class="category-tab" data-category="technical">Technical Analysis <span class="count">4</span></button>
+                        <button class="category-tab" data-category="gold">Gold Trading <span class="count">3</span></button>
+                        <button class="category-tab" data-category="risk">Risk Management <span class="count">2</span></button>
+                        <button class="category-tab" data-category="strategy">Advanced Strategy <span class="count">3</span></button>
+                    </div>
+
+                    <!-- Featured Course -->
+                    <div class="featured-course">
+                        <div class="featured-thumbnail">
+                            <div class="featured-badge">Featured Course</div>
+                            <div class="play-button"></div>
+                            <span class="duration">4h 30m</span>
+                        </div>
+                        <div class="featured-content">
+                            <div class="course-category">Gold Trading</div>
+                            <h3 class="course-title">Complete Gold Trading Masterclass 2024</h3>
+                            <p class="course-desc">Master XAUUSD trading with our comprehensive course covering fundamental analysis, technical patterns, risk management, and live trading sessions. Perfect for traders who want to specialize in gold markets.</p>
+                            <div class="featured-stats">
+                                <div class="featured-stat">
+                                    <div class="featured-stat-value">32</div>
+                                    <div class="featured-stat-label">Lessons</div>
+                                </div>
+                                <div class="featured-stat">
+                                    <div class="featured-stat-value">4.9</div>
+                                    <div class="featured-stat-label">Rating</div>
+                                </div>
+                                <div class="featured-stat">
+                                    <div class="featured-stat-value">856</div>
+                                    <div class="featured-stat-label">Students</div>
+                                </div>
+                            </div>
+                            <div class="course-actions">
+                                <button class="btn-course primary">Start Learning</button>
+                                <button class="btn-course secondary">Preview</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Forex Basics -->
+                    <section class="section">
+                        <div class="section-header-row">
+                            <h3>Forex Basics</h3>
+                            <a href="#" class="view-all-link">View All →</a>
+                        </div>
+                        <div class="courses-grid">
+                            <!-- Course 1 -->
+                            <div class="course-card" data-category="basics">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-beginner">Beginner</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">2h 15m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Forex Basics</div>
+                                    <h4 class="course-title">Introduction to Forex Trading</h4>
+                                    <p class="course-desc">Learn the fundamentals of forex trading including currency pairs, pips, lots, and how the forex market works.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 12 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.8</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 1,234</span>
+                                    </div>
+                                    <div class="course-progress">
+                                        <div class="progress-header">
+                                            <span class="progress-label">Progress</span>
+                                            <span class="progress-percent">75%</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: 75%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">JD</div>
+                                            <span class="instructor-name">John Doe</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value">FREE</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Continue</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 2 -->
+                            <div class="course-card" data-category="basics">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-beginner">Beginner</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">1h 45m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Forex Basics</div>
+                                    <h4 class="course-title">Understanding Market Structure</h4>
+                                    <p class="course-desc">Deep dive into market structure including trends, support/resistance, and how to identify market phases.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 8 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.7</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 892</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">SM</div>
+                                            <span class="instructor-name">Sarah Miller</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value">FREE</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Start Course</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 3 -->
+                            <div class="course-card" data-category="basics">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-beginner">Beginner</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">2h 30m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Forex Basics</div>
+                                    <h4 class="course-title">MT4/MT5 Platform Mastery</h4>
+                                    <p class="course-desc">Complete guide to using MetaTrader platforms including chart setup, order execution, and customization.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 15 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 654</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">MK</div>
+                                            <span class="instructor-name">Mike Kim</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value">FREE</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Start Course</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section: Technical Analysis -->
+                    <section class="section">
+                        <div class="section-header-row">
+                            <h3>Technical Analysis</h3>
+                            <a href="#" class="view-all-link">View All →</a>
+                        </div>
+                        <div class="courses-grid">
+                            <!-- Course 4 -->
+                            <div class="course-card" data-category="technical">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-intermediate">Intermediate</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">3h 20m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Technical Analysis</div>
+                                    <h4 class="course-title">Candlestick Patterns Mastery</h4>
+                                    <p class="course-desc">Learn to read and trade all major candlestick patterns including Doji, Engulfing, Hammer, and more.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 18 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 1,567</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">AT</div>
+                                            <span class="instructor-name">Alex Turner</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-original">$99</div>
+                                            <div class="price-value premium">$49</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 5 -->
+                            <div class="course-card" data-category="technical">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-intermediate">Intermediate</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">4h 15m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Technical Analysis</div>
+                                    <h4 class="course-title">Support & Resistance Trading</h4>
+                                    <p class="course-desc">Master the art of identifying and trading key support and resistance levels with precision.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 22 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.8</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 943</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">RL</div>
+                                            <span class="instructor-name">Rachel Lee</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value premium">$59</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 6 -->
+                            <div class="course-card" data-category="technical">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-intermediate">Intermediate</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">2h 50m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Technical Analysis</div>
+                                    <h4 class="course-title">Indicator Strategies (RSI, MACD, MA)</h4>
+                                    <p class="course-desc">Learn to use popular indicators effectively including RSI, MACD, Moving Averages, and Bollinger Bands.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 16 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.7</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 782</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">DW</div>
+                                            <span class="instructor-name">David Wang</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value premium">$39</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section: Gold Trading -->
+                    <section class="section">
+                        <div class="section-header-row">
+                            <h3>Gold Trading Specialized</h3>
+                            <a href="#" class="view-all-link">View All →</a>
+                        </div>
+                        <div class="courses-grid">
+                            <!-- Course 7 -->
+                            <div class="course-card" data-category="gold">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-intermediate">Intermediate</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">3h 45m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Gold Trading</div>
+                                    <h4 class="course-title">Gold Market Fundamentals</h4>
+                                    <p class="course-desc">Understand what moves gold prices including economic factors, USD correlation, and geopolitical events.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 20 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 1,123</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">PT</div>
+                                            <span class="instructor-name">Peter Thompson</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value premium">$69</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 8 -->
+                            <div class="course-card" data-category="gold">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-advanced">Advanced</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">5h 10m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Gold Trading</div>
+                                    <h4 class="course-title">XAUUSD Scalping Strategies</h4>
+                                    <p class="course-desc">High-frequency gold trading techniques for day traders including session-based strategies and news trading.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 28 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.8</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 678</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">NK</div>
+                                            <span class="instructor-name">Nina Kowalski</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-original">$149</div>
+                                            <div class="price-value premium">$99</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 9 -->
+                            <div class="course-card" data-category="gold">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-advanced">Advanced</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">4h 20m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Gold Trading</div>
+                                    <h4 class="course-title">Gold vs USD Correlation Trading</h4>
+                                    <p class="course-desc">Advanced correlation analysis between gold and dollar index, treasury yields, and other related markets.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 24 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 445</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">JB</div>
+                                            <span class="instructor-name">James Brown</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value premium">$89</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section: Risk Management -->
+                    <section class="section">
+                        <div class="section-header-row">
+                            <h3>Risk Management</h3>
+                            <a href="#" class="view-all-link">View All →</a>
+                        </div>
+                        <div class="courses-grid">
+                            <!-- Course 10 -->
+                            <div class="course-card" data-category="risk">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-intermediate">Intermediate</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">2h 40m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Risk Management</div>
+                                    <h4 class="course-title">Position Sizing & Money Management</h4>
+                                    <p class="course-desc">Learn proper position sizing, risk per trade calculation, and money management rules for consistent profits.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 14 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 1,890</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">CM</div>
+                                            <span class="instructor-name">Chris Martin</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value">FREE</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Start Course</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 11 -->
+                            <div class="course-card" data-category="risk">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-advanced">Advanced</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">3h 15m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Risk Management</div>
+                                    <h4 class="course-title">Trading Psychology Masterclass</h4>
+                                    <p class="course-desc">Master your emotions, overcome fear and greed, and develop the mindset of a professional trader.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 18 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.8</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 1,456</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">LH</div>
+                                            <span class="instructor-name">Lisa Huang</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value premium">$59</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section: Advanced Strategy -->
+                    <section class="section">
+                        <div class="section-header-row">
+                            <h3>Advanced Strategy</h3>
+                            <a href="#" class="view-all-link">View All →</a>
+                        </div>
+                        <div class="courses-grid">
+                            <!-- Course 12 -->
+                            <div class="course-card" data-category="strategy">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-pro">Pro</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">6h 30m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Advanced Strategy</div>
+                                    <h4 class="course-title">Smart Money Concepts (SMC)</h4>
+                                    <p class="course-desc">Learn institutional trading concepts including order blocks, liquidity zones, and market maker manipulation.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 35 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 723</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">MJ</div>
+                                            <span class="instructor-name">Michael Jordan</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-original">$199</div>
+                                            <div class="price-value premium">$149</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 13 -->
+                            <div class="course-card" data-category="strategy">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-pro">Pro</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">5h 45m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Advanced Strategy</div>
+                                    <h4 class="course-title">ICT Trading Methodology</h4>
+                                    <p class="course-desc">Complete ICT concepts including fair value gaps, breaker blocks, and optimal trade entry techniques.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 30 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.9</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 567</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">RG</div>
+                                            <span class="instructor-name">Robert Garcia</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value premium">$129</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Course 14 -->
+                            <div class="course-card" data-category="strategy">
+                                <div class="course-thumbnail">
+                                    <span class="course-level level-pro">Pro</span>
+                                    <div class="play-button"></div>
+                                    <span class="duration">4h 50m</span>
+                                </div>
+                                <div class="course-content">
+                                    <div class="course-category">Advanced Strategy</div>
+                                    <h4 class="course-title">Algorithmic Trading Introduction</h4>
+                                    <p class="course-desc">Learn to create and backtest automated trading strategies using MQL4/MQL5 and Python.</p>
+                                    <div class="course-meta">
+                                        <span class="meta-item"><span class="meta-icon">&#9658;</span> 26 lessons</span>
+                                        <span class="meta-item"><span class="meta-icon">&#9733;</span> 4.7</span>
+                                        <span class="meta-item"><span class="meta-icon">&#128100;</span> 389</span>
+                                    </div>
+                                    <div class="course-footer">
+                                        <div class="course-instructor">
+                                            <div class="instructor-avatar">EV</div>
+                                            <span class="instructor-name">Emma Volkov</span>
+                                        </div>
+                                        <div class="course-price">
+                                            <div class="price-value premium">$99</div>
+                                        </div>
+                                    </div>
+                                    <div class="course-actions">
+                                        <button class="btn-course primary">Enroll Now</button>
+                                        <button class="btn-course secondary">Preview</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        // Initialize sidebar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar toggle
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', () => {
+                    sidebar.classList.add('mobile-open');
+                    sidebarOverlay.classList.add('active');
+                });
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    sidebarOverlay.classList.remove('active');
+                });
+            }
+
+            // Nav item toggle
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.parentElement.querySelector('.submenu')) {
+                        e.preventDefault();
+                        this.parentElement.classList.toggle('open');
+                    }
+                });
+            });
+
+            // Category tabs
+            const categoryTabs = document.querySelectorAll('.category-tab');
+            const courseCards = document.querySelectorAll('.course-card');
+
+            categoryTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Update active tab
+                    categoryTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const category = this.dataset.category;
+
+                    // Filter cards
+                    courseCards.forEach(card => {
+                        const cardCategory = card.dataset.category;
+                        if (category === 'all' || cardCategory === category) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

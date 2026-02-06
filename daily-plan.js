@@ -90,40 +90,58 @@ function getLatestPattern(data) {
 
 function filterDataByPattern(data, prev1, prev2, prev3) {
     return data.filter(row => {
-        const match1 = prev1 === null || prev1 === '' || row.prev_candle_1 == prev1;
-        const match2 = prev2 === null || prev2 === '' || row.prev_candle_2 == prev2;
-        const match3 = prev3 === null || prev3 === '' || row.prev_candle_3 == prev3;
+        const match1 = prev1 === null || prev1 === undefined || prev1 === '' || row.prev_candle_1 == prev1;
+        const match2 = prev2 === null || prev2 === undefined || prev2 === '' || row.prev_candle_2 == prev2;
+        const match3 = prev3 === null || prev3 === undefined || prev3 === '' || row.prev_candle_3 == prev3;
         return match1 && match2 && match3;
     });
 }
 
-// Fallback logic: ถ้าไม่พบข้อมูล ให้ตัดวันออกทีละวัน
-function getPatternWithFallback(data) {
-    const pattern = getLatestPattern(data);
+// Fallback logic:
+// Try selected pattern days (3, 2, or 1) across all periods (1y → 2y → 3y → 5y → 10y)
+// If no match, use all data
+function getPatternWithFallback(fullData, initialPeriodDays, patternDays = 3) {
+    const pattern = getLatestPattern(fullData);
     let prev1 = pattern.prev1;
     let prev2 = pattern.prev2;
     let prev3 = pattern.prev3;
 
-    // Try 3 days
-    let filtered = filterDataByPattern(data, prev1, prev2, prev3);
-    if (filtered.length > 0) {
-        return { prev1, prev2, prev3, openPrice: pattern.openPrice, usedDays: 3 };
+    // Period levels to try (in days)
+    const periodLevels = [
+        initialPeriodDays || 365,  // Start with selected period
+        730,   // 2 years
+        1095,  // 3 years
+        1825,  // 5 years
+        3650   // 10 years
+    ];
+
+    // Remove duplicates and sort
+    const uniquePeriods = [...new Set(periodLevels)].sort((a, b) => a - b);
+
+    // Determine which pattern to use based on patternDays
+    let usePrev1 = prev1;
+    let usePrev2 = patternDays >= 2 ? prev2 : null;
+    let usePrev3 = patternDays >= 3 ? prev3 : null;
+
+    // Try pattern across all periods
+    for (const periodDays of uniquePeriods) {
+        const periodData = filterDataByPeriod(fullData, periodDays);
+        let filtered = filterDataByPattern(periodData, usePrev1, usePrev2, usePrev3);
+        if (filtered.length > 0) {
+            return {
+                prev1: usePrev1,
+                prev2: usePrev2,
+                prev3: usePrev3,
+                openPrice: pattern.openPrice,
+                usedDays: patternDays,
+                usedPeriod: periodDays,
+                filtered
+            };
+        }
     }
 
-    // Fallback: Try 2 days (remove prev3)
-    filtered = filterDataByPattern(data, prev1, prev2, '');
-    if (filtered.length > 0) {
-        return { prev1, prev2, prev3: null, openPrice: pattern.openPrice, usedDays: 2 };
-    }
-
-    // Fallback: Try 1 day (remove prev2)
-    filtered = filterDataByPattern(data, prev1, '', '');
-    if (filtered.length > 0) {
-        return { prev1, prev2: null, prev3: null, openPrice: pattern.openPrice, usedDays: 1 };
-    }
-
-    // Fallback: Use all data
-    return { prev1: null, prev2: null, prev3: null, openPrice: pattern.openPrice, usedDays: 0 };
+    // Fallback: Use all data with no pattern filter
+    return { prev1: null, prev2: null, prev3: null, openPrice: pattern.openPrice, usedDays: 0, usedPeriod: fullData.length, filtered: fullData };
 }
 
 function calculateNextCandleDistribution(filteredData) {
@@ -143,14 +161,15 @@ function calculateNextCandleDistribution(filteredData) {
         percentages[key] = total > 0 ? (counts[key] / total * 100) : 0;
     });
 
-    let topType = 0;
-    let topPercent = 0;
-    Object.keys(percentages).forEach(key => {
-        if (percentages[key] > topPercent) {
-            topPercent = percentages[key];
-            topType = parseInt(key);
-        }
-    });
+    // Sort by percentage to get Top 2
+    const sorted = Object.keys(percentages)
+        .map(key => ({ type: parseInt(key), percent: percentages[key] }))
+        .sort((a, b) => b.percent - a.percent);
+
+    const topType = sorted[0]?.type || 0;
+    const topPercent = sorted[0]?.percent || 0;
+    const secondType = sorted[1]?.type || 0;
+    const secondPercent = sorted[1]?.percent || 0;
 
     let bullish = 0, bearish = 0;
     Object.keys(counts).forEach(key => {
@@ -161,7 +180,12 @@ function calculateNextCandleDistribution(filteredData) {
     const bullPct = total > 0 ? (bullish / total * 100) : 0;
     const bearPct = total > 0 ? (bearish / total * 100) : 0;
 
-    return { counts, percentages, topType, topPercent, bullish, bearish, bullPct, bearPct, total };
+    return {
+        counts, percentages,
+        topType, topPercent,
+        secondType, secondPercent,
+        bullish, bearish, bullPct, bearPct, total
+    };
 }
 
 // ============================================
@@ -251,10 +275,15 @@ function drawPredictedCandle(type, setup) {
             bodyHeight = 100;
             lowerWickHeight = 50;
             break;
-        case 6: case 7: // Long Wick
-            upperWickHeight = 100;
-            bodyHeight = 60;
-            lowerWickHeight = 40;
+        case 6: case 7: // Long Upper Wick
+            upperWickHeight = 120;
+            bodyHeight = 50;
+            lowerWickHeight = 30;
+            break;
+        case 8: case 9: // Long Lower Wick
+            upperWickHeight = 30;
+            bodyHeight = 50;
+            lowerWickHeight = 120;
             break;
         default:
             upperWickHeight = 50;
@@ -309,6 +338,7 @@ function drawSmallCandle(type) {
         case 2: case 3: upperWickHeight = 4; bodyHeight = 30; lowerWickHeight = 4; break;
         case 4: case 5: upperWickHeight = 10; bodyHeight = 18; lowerWickHeight = 10; break;
         case 6: case 7: upperWickHeight = 18; bodyHeight = 12; lowerWickHeight = 8; break;
+        case 8: case 9: upperWickHeight = 8; bodyHeight = 12; lowerWickHeight = 18; break;
         default: upperWickHeight = 10; bodyHeight = 18; lowerWickHeight = 10;
     }
 
@@ -379,12 +409,21 @@ function renderPatternFlow(pattern, prediction) {
         `;
     }
 
-    // แสดงผลลัพธ์การทำนาย
+    // แสดง Top 2 predictions พร้อม %
     html += `
-        <div class="pattern-candle pattern-result">
-            <span class="pattern-candle-label">TODAY?</span>
-            ${drawSmallCandle(prediction.topType)}
-            <span class="pattern-candle-name">${CANDLE_TYPES[prediction.topType]}</span>
+        <div class="pattern-predictions">
+            <div class="pattern-candle pattern-result pattern-top1">
+                <span class="pattern-candle-label">TOP 1</span>
+                ${drawSmallCandle(prediction.topType)}
+                <span class="pattern-candle-name">${CANDLE_TYPES[prediction.topType]}</span>
+                <span class="pattern-percent">${prediction.topPercent.toFixed(1)}%</span>
+            </div>
+            <div class="pattern-candle pattern-result pattern-top2">
+                <span class="pattern-candle-label">TOP 2</span>
+                ${drawSmallCandle(prediction.secondType)}
+                <span class="pattern-candle-name">${CANDLE_TYPES[prediction.secondType]}</span>
+                <span class="pattern-percent">${prediction.secondPercent.toFixed(1)}%</span>
+            </div>
         </div>
     `;
 
@@ -401,8 +440,9 @@ function calculatePredictedPrices(openPrice, metrics, isBullish) {
 }
 
 // Render Predicted Prices (Left side)
-function renderPredictedPrices(predictedPrices, isBullish) {
-    const container = document.getElementById('predictedPrices');
+function renderPredictedPrices(predictedPrices, isBullish, containerId = 'predictedPrices') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
     // Order: High, Close (bullish) or Open (bearish), Open (bullish) or Close (bearish), Low
     const prices = isBullish ? [
@@ -429,8 +469,10 @@ function renderPredictedPrices(predictedPrices, isBullish) {
 }
 
 // Render Trade Levels (Right side)
-function renderTradeLevels(setup, openPrice) {
-    const container = document.getElementById('tradeLevels');
+function renderTradeLevels(setup, openPrice, containerId = 'tradeLevels') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
     const levels = setup.isBullish ? [
         { name: 'TP2', value: setup.tp2, class: 'tp2' },
         { name: 'TP1', value: setup.tp1, class: 'tp1' },
@@ -456,8 +498,10 @@ function renderTradeLevels(setup, openPrice) {
     `).join('');
 }
 
-function renderCandleMetrics(metrics) {
-    const container = document.getElementById('candleMetrics');
+function renderCandleMetrics(metrics, containerId = 'candleMetrics') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
     const items = [
         { label: 'high_open_dist', value: metrics.high_open_dist },
         { label: 'upper_wick', value: metrics.upper_wick },
@@ -474,38 +518,72 @@ function renderCandleMetrics(metrics) {
     `).join('');
 }
 
-function renderTradeSetup(setup, prediction) {
-    const header = document.getElementById('tradeHeader');
-    const typeEl = document.getElementById('tradeType');
-    const badgeEl = document.getElementById('tradeBadge');
+// Render both Plan A and Plan B
+function renderBothPlans(prediction, avgDistances, openPrice) {
+    // Plan A (Top 1)
+    const topType = prediction.topType;
+    const topIsBullish = topType % 2 === 0;
+    const setupA = calculateTradeSetup(openPrice, topType, avgDistances);
+    const predictedPricesA = calculatePredictedPrices(openPrice, setupA.metrics, topIsBullish);
+
+    document.getElementById('planABadge').textContent = `${CANDLE_TYPES[topType]} (${prediction.topPercent.toFixed(1)}%)`;
+    document.getElementById('candleDrawingA').innerHTML = drawPredictedCandle(topType, setupA);
+    renderPredictedPrices(predictedPricesA, topIsBullish, 'predictedPricesA');
+    renderTradeLevels(setupA, openPrice, 'tradeLevelsA');
+    renderCandleMetrics(setupA.metrics, 'candleMetricsA');
+    renderTradeSetup(setupA, topType, 'A');
+
+    // Plan B (Top 2)
+    const secondType = prediction.secondType;
+    const secondIsBullish = secondType % 2 === 0;
+    const setupB = calculateTradeSetup(openPrice, secondType, avgDistances);
+    const predictedPricesB = calculatePredictedPrices(openPrice, setupB.metrics, secondIsBullish);
+
+    document.getElementById('planBBadge').textContent = `${CANDLE_TYPES[secondType]} (${prediction.secondPercent.toFixed(1)}%)`;
+    document.getElementById('candleDrawingB').innerHTML = drawPredictedCandle(secondType, setupB);
+    renderPredictedPrices(predictedPricesB, secondIsBullish, 'predictedPricesB');
+    renderTradeLevels(setupB, openPrice, 'tradeLevelsB');
+    renderCandleMetrics(setupB.metrics, 'candleMetricsB');
+    renderTradeSetup(setupB, secondType, 'B');
+
+    // Return the primary setup (Plan A) for summary stats
+    return setupA;
+}
+
+function renderTradeSetup(setup, candleType, suffix = 'A') {
+    const header = document.getElementById('tradeHeader' + suffix);
+    const typeEl = document.getElementById('tradeType' + suffix);
+    const badgeEl = document.getElementById('tradeBadge' + suffix);
+
+    if (!header || !typeEl || !badgeEl) return;
 
     if (setup.isBullish) {
         header.className = 'trade-setup-header buy';
         typeEl.className = 'trade-type buy';
         typeEl.textContent = 'BUY';
         badgeEl.className = 'trade-badge buy';
-        badgeEl.textContent = CANDLE_TYPES[prediction.topType];
+        badgeEl.textContent = CANDLE_TYPES[candleType];
     } else {
         header.className = 'trade-setup-header sell';
         typeEl.className = 'trade-type sell';
         typeEl.textContent = 'SELL';
         badgeEl.className = 'trade-badge sell';
-        badgeEl.textContent = CANDLE_TYPES[prediction.topType];
+        badgeEl.textContent = CANDLE_TYPES[candleType];
     }
 
-    document.getElementById('entryZone').textContent = `$${setup.entryLow.toFixed(2)} - $${setup.entryHigh.toFixed(2)}`;
-    document.getElementById('entryDetail').textContent = setup.isBullish ? 'Wait for lower wick' : 'Wait for upper wick';
+    document.getElementById('entryZone' + suffix).textContent = `$${setup.entryLow.toFixed(2)} - $${setup.entryHigh.toFixed(2)}`;
+    document.getElementById('entryDetail' + suffix).textContent = setup.isBullish ? 'Wait for lower wick' : 'Wait for upper wick';
 
-    document.getElementById('stopLoss').textContent = `$${setup.sl.toFixed(2)}`;
-    document.getElementById('slDetail').textContent = `-${setup.risk.toFixed(2)} pts | -${(setup.risk / setup.entry * 100).toFixed(2)}%`;
+    document.getElementById('stopLoss' + suffix).textContent = `$${setup.sl.toFixed(2)}`;
+    document.getElementById('slDetail' + suffix).textContent = `-${setup.risk.toFixed(2)} pts | -${(setup.risk / setup.entry * 100).toFixed(2)}%`;
 
-    document.getElementById('takeProfit1').textContent = `$${setup.tp1.toFixed(2)}`;
-    document.getElementById('tp1Detail').textContent = `+${setup.reward1.toFixed(2)} pts | R:R ${setup.rr1}:1`;
+    document.getElementById('takeProfit1' + suffix).textContent = `$${setup.tp1.toFixed(2)}`;
+    document.getElementById('tp1Detail' + suffix).textContent = `+${setup.reward1.toFixed(2)} pts | R:R ${setup.rr1}:1`;
 
-    document.getElementById('takeProfit2').textContent = `$${setup.tp2.toFixed(2)}`;
-    document.getElementById('tp2Detail').textContent = `+${setup.reward2.toFixed(2)} pts | R:R ${setup.rr2}:1`;
+    document.getElementById('takeProfit2' + suffix).textContent = `$${setup.tp2.toFixed(2)}`;
+    document.getElementById('tp2Detail' + suffix).textContent = `+${setup.reward2.toFixed(2)} pts | R:R ${setup.rr2}:1`;
 
-    document.getElementById('strategyText').textContent = setup.strategy;
+    document.getElementById('strategyText' + suffix).textContent = setup.strategy;
 }
 
 function renderSummaryStats(prediction, avgRange) {
@@ -525,43 +603,48 @@ function renderSummaryStats(prediction, avgRange) {
 
 function updatePredictionWithPeriod() {
     const select = document.getElementById('predictionPeriodSelect');
+    const patternSelect = document.getElementById('patternDaysSelect');
     if (!select || !rawData) return;
 
     const days = parseInt(select.value);
-    const periodFilteredData = filterDataByPeriod(rawData, days);
+    const patternDays = patternSelect ? parseInt(patternSelect.value) : 3;
 
-    // Get latest pattern (always from full data - last 3 candles)
-    const pattern = getPatternWithFallback(rawData);
+    // Get latest pattern with fallback (auto-expands period if needed)
+    const pattern = getPatternWithFallback(rawData, days, patternDays);
     const openPrice = pattern.openPrice;
 
-    // Calculate prediction with period-filtered data
-    const filteredData = filterDataByPattern(periodFilteredData, pattern.prev1, pattern.prev2, pattern.prev3);
+    // Use the filtered data from the pattern (already filtered with fallback)
+    const filteredData = pattern.filtered;
     const prediction = calculateNextCandleDistribution(filteredData);
+
+    // Get period data for avg distances (use the period that matched)
+    const periodFilteredData = filterDataByPeriod(rawData, pattern.usedPeriod);
 
     // Calculate average distances with period-filtered data
     const avgDistances = calculateAvgDistanceByType(periodFilteredData);
 
-    // Calculate trade setup
-    const setup = calculateTradeSetup(openPrice, prediction.topType, avgDistances);
-
     // Calculate average range
     const avgRange = periodFilteredData.reduce((sum, row) => sum + (row.high - row.low || 0), 0) / periodFilteredData.length;
-
-    // Calculate predicted prices (OHLC)
-    const isBullish = prediction.topType % 2 === 0;
-    const predictedPrices = calculatePredictedPrices(openPrice, setup.metrics, isBullish);
 
     // Update UI
     document.getElementById('predProbability').textContent = prediction.topPercent.toFixed(1) + '%';
     document.getElementById('predSamples').textContent = prediction.total.toLocaleString();
-    document.getElementById('candleTypeBadge').textContent = CANDLE_TYPES[prediction.topType];
+
+    // Show used period if different from selected
+    const usedPeriodEl = document.getElementById('predUsedPeriod');
+    if (usedPeriodEl) {
+        if (pattern.usedPeriod > days) {
+            usedPeriodEl.textContent = `(${getPeriodLabel(pattern.usedPeriod)})`;
+        } else {
+            usedPeriodEl.textContent = '';
+        }
+    }
 
     renderPatternFlow(pattern, prediction);
-    document.getElementById('candleDrawing').innerHTML = drawPredictedCandle(prediction.topType, setup);
-    renderPredictedPrices(predictedPrices, isBullish);
-    renderTradeLevels(setup, openPrice);
-    renderCandleMetrics(setup.metrics);
-    renderTradeSetup(setup, prediction);
+
+    // Render both plans (Plan A = Top 1, Plan B = Top 2)
+    renderBothPlans(prediction, avgDistances, openPrice);
+
     renderSummaryStats(prediction, avgRange);
 
     // Update period info
@@ -573,6 +656,12 @@ function initPeriodSelector() {
     if (select) {
         select.addEventListener('change', updatePredictionWithPeriod);
         updatePeriodInfo('predictionPeriodSelect', 'predictionPeriodInfo');
+    }
+
+    // Pattern days selector
+    const patternSelect = document.getElementById('patternDaysSelect');
+    if (patternSelect) {
+        patternSelect.addEventListener('change', updatePredictionWithPeriod);
     }
 }
 
@@ -665,22 +754,22 @@ async function init() {
 
         // Use 1 year data by default for calculations
         const defaultPeriod = 365;
-        const periodFilteredData = filterDataByPeriod(rawData, defaultPeriod);
+        const defaultPatternDays = 3;
 
-        // Get latest pattern with fallback logic
-        const pattern = getPatternWithFallback(rawData);
+        // Get latest pattern with fallback logic (auto-expands period if needed)
+        const pattern = getPatternWithFallback(rawData, defaultPeriod, defaultPatternDays);
         const openPrice = pattern.openPrice;
-        console.log('Pattern used:', pattern.usedDays, 'days -', pattern.prev1, pattern.prev2, pattern.prev3);
+        console.log('Pattern used:', pattern.usedDays, 'days, period:', pattern.usedPeriod, 'days -', pattern.prev1, pattern.prev2, pattern.prev3);
 
-        // Calculate prediction with period-filtered data
-        const filteredData = filterDataByPattern(periodFilteredData, pattern.prev1, pattern.prev2, pattern.prev3);
+        // Use the filtered data from the pattern (already filtered with fallback)
+        const filteredData = pattern.filtered;
         const prediction = calculateNextCandleDistribution(filteredData);
+
+        // Get period data for avg distances (use the period that matched)
+        const periodFilteredData = filterDataByPeriod(rawData, pattern.usedPeriod);
 
         // Calculate average distances with period-filtered data
         const avgDistances = calculateAvgDistanceByType(periodFilteredData);
-
-        // Calculate trade setup
-        const setup = calculateTradeSetup(openPrice, prediction.topType, avgDistances);
 
         // Calculate average range from period-filtered data
         const avgRange = periodFilteredData.reduce((sum, row) => sum + (row.high - row.low || 0), 0) / periodFilteredData.length;
@@ -691,22 +780,22 @@ async function init() {
             weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
         });
 
-        // Calculate predicted prices (OHLC)
-        const isBullish = prediction.topType % 2 === 0;
-        const predictedPrices = calculatePredictedPrices(openPrice, setup.metrics, isBullish);
-
         // Render UI
         document.getElementById('openPrice').textContent = '$' + openPrice.toFixed(2);
         document.getElementById('predProbability').textContent = prediction.topPercent.toFixed(1) + '%';
         document.getElementById('predSamples').textContent = prediction.total.toLocaleString();
-        document.getElementById('candleTypeBadge').textContent = CANDLE_TYPES[prediction.topType];
+
+        // Show used period if different from default
+        const usedPeriodEl = document.getElementById('predUsedPeriod');
+        if (usedPeriodEl && pattern.usedPeriod > defaultPeriod) {
+            usedPeriodEl.textContent = `(${getPeriodLabel(pattern.usedPeriod)})`;
+        }
 
         renderPatternFlow(pattern, prediction);
-        document.getElementById('candleDrawing').innerHTML = drawPredictedCandle(prediction.topType, setup);
-        renderPredictedPrices(predictedPrices, isBullish);  // Left: Predicted prices
-        renderTradeLevels(setup, openPrice);                 // Right: Trade levels
-        renderCandleMetrics(setup.metrics);
-        renderTradeSetup(setup, prediction);
+
+        // Render both plans (Plan A = Top 1, Plan B = Top 2)
+        const setup = renderBothPlans(prediction, avgDistances, openPrice);
+
         renderSummaryStats(prediction, avgRange);
         renderMiniCandleChart(rawData, 20);                  // Mini candlestick chart
 
@@ -721,36 +810,41 @@ async function init() {
         initMarketSelector(async (newData) => {
             rawData = newData;
 
-            // Get current period selection
+            // Get current period and pattern selection
             const periodSelect = document.getElementById('predictionPeriodSelect');
+            const patternSelect = document.getElementById('patternDaysSelect');
             const days = periodSelect ? parseInt(periodSelect.value) : 365;
-            const newPeriodFilteredData = filterDataByPeriod(rawData, days);
+            const patternDays = patternSelect ? parseInt(patternSelect.value) : 3;
 
-            // Recalculate everything with new data
-            const newPattern = getPatternWithFallback(rawData);
+            // Recalculate everything with new data (auto-expands period if needed)
+            const newPattern = getPatternWithFallback(rawData, days, patternDays);
             const newOpenPrice = newPattern.openPrice;
-            const newFilteredData = filterDataByPattern(newPeriodFilteredData, newPattern.prev1, newPattern.prev2, newPattern.prev3);
+            const newFilteredData = newPattern.filtered;
             const newPrediction = calculateNextCandleDistribution(newFilteredData);
+            const newPeriodFilteredData = filterDataByPeriod(rawData, newPattern.usedPeriod);
             const newAvgDistances = calculateAvgDistanceByType(newPeriodFilteredData);
-            const newSetup = calculateTradeSetup(newOpenPrice, newPrediction.topType, newAvgDistances);
             const newAvgRange = newPeriodFilteredData.reduce((sum, row) => sum + (row.high - row.low || 0), 0) / newPeriodFilteredData.length;
-
-            // Calculate predicted prices
-            const newIsBullish = newPrediction.topType % 2 === 0;
-            const newPredictedPrices = calculatePredictedPrices(newOpenPrice, newSetup.metrics, newIsBullish);
 
             // Update UI
             document.getElementById('openPrice').textContent = '$' + newOpenPrice.toFixed(2);
             document.getElementById('predProbability').textContent = newPrediction.topPercent.toFixed(1) + '%';
             document.getElementById('predSamples').textContent = newPrediction.total.toLocaleString();
-            document.getElementById('candleTypeBadge').textContent = CANDLE_TYPES[newPrediction.topType];
+
+            // Show used period if different from selected
+            const usedPeriodEl = document.getElementById('predUsedPeriod');
+            if (usedPeriodEl) {
+                if (newPattern.usedPeriod > days) {
+                    usedPeriodEl.textContent = `(${getPeriodLabel(newPattern.usedPeriod)})`;
+                } else {
+                    usedPeriodEl.textContent = '';
+                }
+            }
 
             renderPatternFlow(newPattern, newPrediction);
-            document.getElementById('candleDrawing').innerHTML = drawPredictedCandle(newPrediction.topType, newSetup);
-            renderPredictedPrices(newPredictedPrices, newIsBullish);
-            renderTradeLevels(newSetup, newOpenPrice);
-            renderCandleMetrics(newSetup.metrics);
-            renderTradeSetup(newSetup, newPrediction);
+
+            // Render both plans (Plan A = Top 1, Plan B = Top 2)
+            renderBothPlans(newPrediction, newAvgDistances, newOpenPrice);
+
             renderSummaryStats(newPrediction, newAvgRange);
             renderMiniCandleChart(rawData, 20);              // Mini candlestick chart
 

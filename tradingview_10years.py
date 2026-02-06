@@ -52,6 +52,30 @@ SYMBOLS = {
         'market_type': 'Futures'
     }
 }
+
+# H1 (Hourly) Symbol configurations for Basis calculation & Session Analysis
+SYMBOLS_H1 = {
+    'xauusd_h1': {
+        'symbol': 'XAUUSD',
+        'exchange': 'OANDA',
+        'name': 'Gold Spot CFD (H1)',
+        'output_file': 'xauusd_h1_data.csv',
+        'description': 'XAUUSD H1 for Basis & Session Analysis',
+        'market_type': 'CFD',
+        'interval': 'h1',
+        'n_bars': 5000  # ~7 months of hourly data (5000/24 = 208 days)
+    },
+    'gc1_h1': {
+        'symbol': 'GC1!',
+        'exchange': 'COMEX',
+        'name': 'Gold Futures (H1)',
+        'output_file': 'gc1_h1_data.csv',
+        'description': 'GC1! H1 for Basis & Session Analysis',
+        'market_type': 'Futures',
+        'interval': 'h1',
+        'n_bars': 5000  # ~7 months of hourly data (5000/24 = 208 days)
+    }
+}
 # ========================================================
 
 class TradingView10YearsFetcher:
@@ -270,7 +294,7 @@ class TradingView10YearsFetcher:
             # Classify candlestick types
             df['candle_type'] = df.apply(self.classify_candle_type, axis=1)
 
-            # Add human-readable names
+            # Add human-readable names (10 types)
             candle_type_names = {
                 0: 'Doji Bullish',
                 1: 'Doji Bearish',
@@ -278,8 +302,10 @@ class TradingView10YearsFetcher:
                 3: 'Full Body Bearish',
                 4: 'Normal Candle Bullish',
                 5: 'Normal Candle Bearish',
-                6: 'Long Wick Bullish',
-                7: 'Long Wick Bearish'
+                6: 'Long Upper Wick Bullish',
+                7: 'Long Upper Wick Bearish',
+                8: 'Long Lower Wick Bullish',
+                9: 'Long Lower Wick Bearish'
             }
             df['candle_type_name'] = df['candle_type'].map(candle_type_names)
 
@@ -324,17 +350,19 @@ class TradingView10YearsFetcher:
 
     def classify_candle_type(self, row: pd.Series) -> int:
         """
-        Classify candlestick type into 8 categories based on body and wick ratios
+        Classify candlestick type into 10 categories based on body and wick ratios
 
-        Classification System (4 Core Types x 2 Directions = 8 Classes):
+        Classification System (5 Core Types x 2 Directions = 10 Classes):
         0: Doji Bullish-biased (body < 10%, bullish)
         1: Doji Bearish-biased (body < 10%, bearish)
         2: Full Body Bullish (body > 70%, minimal wicks)
         3: Full Body Bearish (body > 70%, minimal wicks)
         4: Normal Candle Bullish (balanced body & wicks)
         5: Normal Candle Bearish (balanced body & wicks)
-        6: Long Wick Bullish (wick > 40%, bullish)
-        7: Long Wick Bearish (wick > 40%, bearish)
+        6: Long Upper Wick Bullish (upper wick > 40%, bullish)
+        7: Long Upper Wick Bearish (upper wick > 40%, bearish)
+        8: Long Lower Wick Bullish (lower wick > 40%, bullish)
+        9: Long Lower Wick Bearish (lower wick > 40%, bearish)
         """
         open_price = row['open']
         high_price = row['high']
@@ -369,11 +397,15 @@ class TradingView10YearsFetcher:
         elif body_pct > 0.70:
             return 2 if is_bullish else 3
 
-        # 3. Long Wick (upper or lower wick > 40%)
-        elif upper_wick_pct > 0.40 or lower_wick_pct > 0.40:
+        # 3. Long Upper Wick (upper wick > 40%)
+        elif upper_wick_pct > 0.40:
             return 6 if is_bullish else 7
 
-        # 4. Normal Candle (everything else)
+        # 4. Long Lower Wick (lower wick > 40%)
+        elif lower_wick_pct > 0.40:
+            return 8 if is_bullish else 9
+
+        # 5. Normal Candle (everything else)
         else:
             return 4 if is_bullish else 5
 
@@ -439,10 +471,17 @@ class TradingView10YearsFetcher:
                 filtered_data = filtered_data.drop(columns=['volume'])
 
             # Remove incomplete candle (today's unfinished candle)
+            # But FIRST save today's open price for Open Day reference
             today = datetime.now(self.timezone).date()
             last_date = pd.to_datetime(filtered_data['datetime'].iloc[-1]).date()
 
             if last_date >= today:
+                # Save today's open price before removing the row
+                today_open = filtered_data.iloc[-1]['open']
+                today_row = filtered_data.iloc[-1].to_dict()
+                self._save_open_day_data(today_row, filtered_data['datetime'].iloc[-1])
+
+                logger.info(f"Saved Open Day price: {today_open} for {last_date}")
                 logger.info(f"Removing incomplete candle for {last_date} (today or future)")
                 filtered_data = filtered_data.iloc[:-1]
 
@@ -454,6 +493,39 @@ class TradingView10YearsFetcher:
         except Exception as e:
             logger.error(f"Error filtering data: {e}")
             return None
+
+    def _save_open_day_data(self, row_data: dict, datetime_val) -> bool:
+        """Save today's open price to a JSON file for Open Day reference
+        Only saves the Open price since the day is not complete yet"""
+        import json
+
+        try:
+            # Determine symbol from row data
+            symbol = row_data.get('symbol', 'unknown')
+            if 'XAUUSD' in symbol or 'xauusd' in symbol.lower():
+                filename = 'open_day_xauusd.json'
+            elif 'GC1' in symbol or 'gc1' in symbol.lower():
+                filename = 'open_day_gc1.json'
+            else:
+                filename = 'open_day_data.json'
+
+            # Only save Open price (day not complete, other values not final)
+            open_day_data = {
+                'date': pd.to_datetime(datetime_val).strftime('%Y-%m-%d'),
+                'symbol': symbol,
+                'open': float(row_data.get('open', 0))
+            }
+
+            filepath = Path(filename)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(open_day_data, f, indent=2)
+
+            logger.info(f"Open Day data saved to {filepath}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error saving Open Day data: {e}")
+            return False
 
     def save_to_csv(self, data: pd.DataFrame, filename: str = 'xauusd_10years_data.csv') -> bool:
         """Save data to CSV file with proper error handling"""
@@ -608,6 +680,75 @@ class TradingView10YearsFetcher:
         return results
 
 
+def fetch_h1_data_for_basis(fetcher: TradingView10YearsFetcher, output_dir: str = None) -> Dict[str, pd.DataFrame]:
+    """
+    Fetch H1 (hourly) data for basis calculation & session analysis
+    - Basis: Uses SMA20 on H1 timeframe for more responsive basis
+    - Session Analysis: Analyzes Asian/London/NY session patterns
+
+    Args:
+        fetcher: TradingView10YearsFetcher instance
+        output_dir: Directory to save output files
+
+    Returns:
+        Dictionary mapping symbol keys to their DataFrames
+    """
+    results = {}
+
+    logger.info("="*70)
+    logger.info("Fetching H1 Data for Basis Calculation & Session Analysis")
+    logger.info("="*70)
+
+    for symbol_key, config in SYMBOLS_H1.items():
+        symbol = config['symbol']
+        exchange = config['exchange']
+        n_bars = config.get('n_bars', 100)
+        output_file = config['output_file']
+
+        if output_dir:
+            output_file = str(Path(output_dir) / output_file)
+
+        logger.info(f"\nFetching {symbol} H1 data ({n_bars} bars)...")
+
+        try:
+            # Fetch H1 data
+            data = fetcher.fetch_data(
+                symbol=symbol,
+                exchange=exchange,
+                interval=Interval.in_1_hour,
+                n_bars=n_bars
+            )
+
+            if data is not None and not data.empty:
+                # Reset index and format
+                df = data.reset_index()
+
+                # Rename columns if needed
+                if 'datetime' not in df.columns and df.index.name == 'datetime':
+                    df = df.reset_index()
+
+                # Format datetime
+                if 'datetime' in df.columns:
+                    df['datetime'] = pd.to_datetime(df['datetime']).dt.strftime('%Y-%m-%d %H:%M:%S')
+
+                # Add symbol column
+                df['symbol'] = f"{exchange}:{symbol}"
+
+                # Save to CSV
+                filepath = Path(output_file)
+                df.to_csv(filepath, index=False, encoding='utf-8')
+
+                logger.info(f"Saved {len(df)} H1 bars to {filepath}")
+                results[symbol_key] = df
+            else:
+                logger.warning(f"No H1 data received for {symbol}")
+
+        except Exception as e:
+            logger.error(f"Error fetching H1 data for {symbol}: {e}")
+
+    return results
+
+
 def print_summary(results: Dict[str, pd.DataFrame]):
     """Print summary statistics for all analyzed symbols"""
     logger.info("\n" + "="*70)
@@ -701,6 +842,18 @@ def main():
 
         if results:
             print_summary(results)
+
+            # Also fetch H1 data for basis calculation
+            logger.info("\n" + "="*70)
+            logger.info("Fetching H1 data for Basis calculation...")
+            logger.info("="*70)
+            h1_results = fetch_h1_data_for_basis(fetcher, output_dir=args.output_dir)
+
+            if h1_results:
+                logger.info(f"\nH1 data fetched for {len(h1_results)} symbols")
+                for key, df in h1_results.items():
+                    logger.info(f"  - {SYMBOLS_H1[key]['output_file']}: {len(df)} bars")
+
             logger.info("\nANALYSIS COMPLETE!")
         else:
             logger.error("Failed to fetch and analyze data for any symbol")

@@ -27,12 +27,100 @@
 
         /* Open Price Card */
         .open-price-card {
-            background: linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(168, 85, 247, 0.1));
-            border: 1px solid rgba(0, 245, 255, 0.3);
-            border-radius: 1rem;
+            background: linear-gradient(135deg, rgba(115, 103, 240, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(115, 103, 240, 0.3);
+            border-radius: var(--radius-lg);
             padding: 1.5rem;
-            text-align: center;
         }
+        .open-price-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .open-price-change {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .open-price-change.positive {
+            background: rgba(40, 199, 111, 0.15);
+            color: var(--neon-green);
+        }
+        .open-price-change.negative {
+            background: rgba(255, 76, 81, 0.15);
+            color: var(--neon-red);
+        }
+
+        /* Mini Chart */
+        .mini-chart-container {
+            margin: 1rem 0;
+        }
+        .mini-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 2px;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            min-height: 90px;
+        }
+        .mini-candle {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .mini-candle-wick {
+            position: absolute;
+            width: 1px;
+        }
+        .mini-candle-body {
+            position: absolute;
+            width: 4px;
+            border-radius: 1px;
+        }
+        .mini-candle.bullish .mini-candle-wick,
+        .mini-candle.bullish .mini-candle-body {
+            background: var(--neon-green);
+        }
+        .mini-candle.bearish .mini-candle-wick,
+        .mini-candle.bearish .mini-candle-body {
+            background: var(--neon-red);
+        }
+        .mini-candle.current .mini-candle-body {
+            box-shadow: 0 0 8px currentColor;
+        }
+        .mini-chart-axis {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+        .mini-chart-stats {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .mini-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .mini-stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .mini-stat-dot.bullish { background: var(--neon-green); }
+        .mini-stat-dot.bearish { background: var(--neon-red); }
         .open-price-label {
             font-size: 0.75rem;
             color: var(--text-muted);
@@ -90,6 +178,35 @@
             font-weight: 600;
         }
 
+        /* Pattern Predictions - Top 2 */
+        .pattern-predictions {
+            display: flex;
+            gap: 1rem;
+        }
+        .pattern-percent {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 0.25rem;
+        }
+        .pattern-top1 {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(115, 103, 240, 0.2), rgba(143, 133, 243, 0.1));
+        }
+        .pattern-top1 .pattern-candle-label {
+            color: var(--primary);
+        }
+        .pattern-top2 {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, rgba(255, 159, 67, 0.2), rgba(255, 179, 97, 0.1));
+        }
+        .pattern-top2 .pattern-candle-label {
+            color: var(--warning);
+        }
+        .pattern-top2 .pattern-percent {
+            color: var(--warning);
+        }
+
         /* Prediction Stats */
         .prediction-stats {
             display: flex;
@@ -112,11 +229,61 @@
             color: var(--text-muted);
         }
 
+        /* Two Plans Grid */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .plan-column {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        .plan-column.plan-a {
+            border-top: 3px solid var(--primary);
+        }
+        .plan-column.plan-b {
+            border-top: 3px solid var(--warning);
+        }
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .plan-title {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .plan-a .plan-title { color: var(--primary); }
+        .plan-b .plan-title { color: var(--warning); }
+        .plan-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .plan-a .plan-badge {
+            background: rgba(115, 103, 240, 0.15);
+            color: var(--primary);
+        }
+        .plan-b .plan-badge {
+            background: rgba(255, 159, 67, 0.15);
+            color: var(--warning);
+        }
+        .plan-body {
+            padding: 1.25rem;
+        }
+
         /* Candle Visualization */
         .candle-viz {
             position: relative;
-            padding: 2rem;
-            min-height: 400px;
+            padding: 1.5rem;
+            min-height: 350px;
         }
         .candle-viz-container {
             display: flex;
@@ -216,8 +383,14 @@
 
         /* Trade Setup Card */
         .trade-setup {
-            border-radius: 1rem;
+            border-radius: var(--radius-lg);
             overflow: hidden;
+        }
+        .plan-a-setup {
+            border-top: 3px solid var(--primary);
+        }
+        .plan-b-setup {
+            border-top: 3px solid var(--warning);
         }
         .trade-setup-header {
             padding: 1rem 1.5rem;
@@ -391,6 +564,34 @@
             color: var(--neon-purple);
         }
 
+        /* Pattern Days Select */
+        .pattern-days-select {
+            padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+            background: rgba(18, 18, 46, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-primary);
+            font-size: 0.6875rem;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237367f0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.375rem center;
+            background-size: 0.75rem;
+        }
+        .pattern-days-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(115, 103, 240, 0.2);
+        }
+
+        @media (max-width: 1024px) {
+            .plans-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 768px) {
             .candle-viz-container {
                 flex-direction: column;
@@ -509,6 +710,62 @@
                             <a class="submenu-link active" href="daily-plan.html">
                                 <span class="submenu-dot"></span>
                                 <span>Daily Plan</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="cme-oi">
+                            <span class="nav-icon">&#9679;</span>
+                            <span class="nav-text">CME OI</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="cme-oi.html">
+                                <span class="submenu-dot"></span>
+                                <span>Intraday Volume</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="indicators">
+                            <span class="nav-icon">&#9881;</span>
+                            <span class="nav-text">Indicators</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="indicators.html">
+                                <span class="submenu-dot"></span>
+                                <span>MT4/MT5 Download</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="courses">
+                            <span class="nav-icon">&#9658;</span>
+                            <span class="nav-text">Courses</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="courses.html">
+                                <span class="submenu-dot"></span>
+                                <span>Video Courses</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-item">
+                        <a class="nav-link" data-section="session">
+                            <span class="nav-icon">&#9200;</span>
+                            <span class="nav-text">Session</span>
+                            <span class="nav-arrow">&#9654;</span>
+                        </a>
+                        <div class="submenu">
+                            <a class="submenu-link" href="session-analysis.html">
+                                <span class="submenu-dot"></span>
+                                <span>Session Analysis</span>
                             </a>
                         </div>
                     </div>
@@ -634,8 +891,13 @@
 
                         <!-- Pattern Analysis -->
                         <div class="glass-card">
-                            <div class="card-header">
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                                 <span class="card-title">Pattern Analysis</span>
+                                <select id="patternDaysSelect" class="pattern-days-select">
+                                    <option value="3" selected>3-Day Pattern</option>
+                                    <option value="2">2-Day Pattern</option>
+                                    <option value="1">1-Day Pattern</option>
+                                </select>
                             </div>
                             <div class="pattern-flow" id="patternFlow">
                                 <!-- Generated by JS -->
@@ -647,101 +909,175 @@
                                 </div>
                                 <div class="pred-stat">
                                     <p class="pred-stat-value cyan" id="predSamples">-</p>
-                                    <p class="pred-stat-label">Samples</p>
+                                    <p class="pred-stat-label">Samples <span id="predUsedPeriod" style="font-size: 0.625rem; color: var(--text-muted);"></span></p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Predicted Candle Visualization -->
+                    <!-- Predicted Candle Visualization - 2 Plans -->
                     <section class="section">
-                        <div class="glass-card">
-                            <div class="card-header">
-                                <span class="card-title">Predicted Candle & Price Levels</span>
-                                <div class="period-selector">
-                                    <label class="period-label">Period:</label>
-                                    <select class="period-select" id="predictionPeriodSelect">
-                                        <option value="365" selected>1 Year</option>
-                                        <option value="730">2 Years</option>
-                                        <option value="1095">3 Years</option>
-                                        <option value="1825">5 Years</option>
-                                        <option value="3650">10 Years</option>
-                                    </select>
-                                    <span class="period-info" id="predictionPeriodInfo">(365 days)</span>
-                                </div>
-                                <span class="card-badge" id="candleTypeBadge">-</span>
+                        <div class="section-header">
+                            <h3 class="section-title">Trading Plans</h3>
+                            <div class="period-selector">
+                                <label class="period-label">Period:</label>
+                                <select class="period-select" id="predictionPeriodSelect">
+                                    <option value="365" selected>1 Year</option>
+                                    <option value="730">2 Years</option>
+                                    <option value="1095">3 Years</option>
+                                    <option value="1825">5 Years</option>
+                                    <option value="3650">10 Years</option>
+                                </select>
+                                <span class="period-info" id="predictionPeriodInfo">(365 days)</span>
                             </div>
-                            <div class="candle-viz">
-                                <div class="candle-viz-container">
-                                    <!-- Left: Predicted Prices -->
-                                    <div class="predicted-prices-wrapper">
-                                        <p class="viz-section-label">Predicted Prices</p>
-                                        <div class="predicted-prices" id="predictedPrices">
-                                            <!-- Generated by JS -->
+                        </div>
+
+                        <div class="plans-grid">
+                            <!-- Plan A (Top 1) -->
+                            <div class="plan-column plan-a">
+                                <div class="plan-header">
+                                    <span class="plan-title">Plan A - Primary</span>
+                                    <span class="plan-badge" id="planABadge">-</span>
+                                </div>
+                                <div class="plan-body">
+                                    <div class="candle-viz">
+                                        <div class="candle-viz-container">
+                                            <div class="predicted-prices-wrapper">
+                                                <p class="viz-section-label">Predicted Prices</p>
+                                                <div class="predicted-prices" id="predictedPricesA">
+                                                </div>
+                                            </div>
+                                            <div class="candle-drawing" id="candleDrawingA">
+                                            </div>
+                                            <div class="trade-levels-wrapper">
+                                                <p class="viz-section-label">Trade Levels</p>
+                                                <div class="trade-levels" id="tradeLevelsA">
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <!-- Center: Candle Drawing -->
-                                    <div class="candle-drawing" id="candleDrawing">
-                                        <!-- SVG generated by JS -->
-                                    </div>
-
-                                    <!-- Right: Trade Levels -->
-                                    <div class="trade-levels-wrapper">
-                                        <p class="viz-section-label">Trade Levels</p>
-                                        <div class="trade-levels" id="tradeLevels">
-                                            <!-- Generated by JS -->
-                                        </div>
+                                    <div class="candle-info-grid" id="candleMetricsA">
                                     </div>
                                 </div>
                             </div>
-                            <!-- Candle Type Metrics -->
-                            <div class="candle-info-grid" id="candleMetrics">
-                                <!-- Generated by JS -->
+
+                            <!-- Plan B (Top 2) -->
+                            <div class="plan-column plan-b">
+                                <div class="plan-header">
+                                    <span class="plan-title">Plan B - Alternative</span>
+                                    <span class="plan-badge" id="planBBadge">-</span>
+                                </div>
+                                <div class="plan-body">
+                                    <div class="candle-viz">
+                                        <div class="candle-viz-container">
+                                            <div class="predicted-prices-wrapper">
+                                                <p class="viz-section-label">Predicted Prices</p>
+                                                <div class="predicted-prices" id="predictedPricesB">
+                                                </div>
+                                            </div>
+                                            <div class="candle-drawing" id="candleDrawingB">
+                                            </div>
+                                            <div class="trade-levels-wrapper">
+                                                <p class="viz-section-label">Trade Levels</p>
+                                                <div class="trade-levels" id="tradeLevelsB">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="candle-info-grid" id="candleMetricsB">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>
 
-                    <!-- Trade Setup -->
+                    <!-- Trade Setup - 2 Plans -->
                     <section class="section">
-                        <div class="glass-card trade-setup">
-                            <div class="trade-setup-header" id="tradeHeader">
-                                <span class="trade-type" id="tradeType">-</span>
-                                <span class="trade-badge" id="tradeBadge">-</span>
+                        <div class="section-header">
+                            <h3 class="section-title">Trade Setup</h3>
+                        </div>
+                        <div class="plans-grid">
+                            <!-- Plan A Trade Setup -->
+                            <div class="glass-card trade-setup plan-a-setup">
+                                <div class="trade-setup-header" id="tradeHeaderA">
+                                    <span class="trade-type" id="tradeTypeA">-</span>
+                                    <span class="trade-badge" id="tradeBadgeA">-</span>
+                                </div>
+                                <div class="trade-setup-body">
+                                    <div class="trade-row">
+                                        <span class="trade-label">Entry Zone</span>
+                                        <div class="trade-value">
+                                            <p class="trade-price cyan" id="entryZoneA">$- - $-</p>
+                                            <p class="trade-detail" id="entryDetailA">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="trade-row">
+                                        <span class="trade-label">Stop Loss</span>
+                                        <div class="trade-value">
+                                            <p class="trade-price red" id="stopLossA">$-</p>
+                                            <p class="trade-detail" id="slDetailA">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="trade-row">
+                                        <span class="trade-label">Take Profit 1</span>
+                                        <div class="trade-value">
+                                            <p class="trade-price green" id="takeProfit1A">$-</p>
+                                            <p class="trade-detail" id="tp1DetailA">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="trade-row">
+                                        <span class="trade-label">Take Profit 2</span>
+                                        <div class="trade-value">
+                                            <p class="trade-price green" id="takeProfit2A">$-</p>
+                                            <p class="trade-detail" id="tp2DetailA">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="trade-strategy">
+                                        <p class="trade-strategy-title">Strategy</p>
+                                        <p class="trade-strategy-text" id="strategyTextA">-</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="trade-setup-body">
-                                <div class="trade-row">
-                                    <span class="trade-label">Entry Zone</span>
-                                    <div class="trade-value">
-                                        <p class="trade-price cyan" id="entryZone">$- - $-</p>
-                                        <p class="trade-detail" id="entryDetail">-</p>
-                                    </div>
-                                </div>
-                                <div class="trade-row">
-                                    <span class="trade-label">Stop Loss</span>
-                                    <div class="trade-value">
-                                        <p class="trade-price red" id="stopLoss">$-</p>
-                                        <p class="trade-detail" id="slDetail">-</p>
-                                    </div>
-                                </div>
-                                <div class="trade-row">
-                                    <span class="trade-label">Take Profit 1</span>
-                                    <div class="trade-value">
-                                        <p class="trade-price green" id="takeProfit1">$-</p>
-                                        <p class="trade-detail" id="tp1Detail">-</p>
-                                    </div>
-                                </div>
-                                <div class="trade-row">
-                                    <span class="trade-label">Take Profit 2</span>
-                                    <div class="trade-value">
-                                        <p class="trade-price green" id="takeProfit2">$-</p>
-                                        <p class="trade-detail" id="tp2Detail">-</p>
-                                    </div>
-                                </div>
 
-                                <div class="trade-strategy">
-                                    <p class="trade-strategy-title">Strategy</p>
-                                    <p class="trade-strategy-text" id="strategyText">-</p>
+                            <!-- Plan B Trade Setup -->
+                            <div class="glass-card trade-setup plan-b-setup">
+                                <div class="trade-setup-header" id="tradeHeaderB">
+                                    <span class="trade-type" id="tradeTypeB">-</span>
+                                    <span class="trade-badge" id="tradeBadgeB">-</span>
+                                </div>
+                                <div class="trade-setup-body">
+                                    <div class="trade-row">
+                                        <span class="trade-label">Entry Zone</span>
+                                        <div class="trade-value">
+                                            <p class="trade-price cyan" id="entryZoneB">$- - $-</p>
+                                            <p class="trade-detail" id="entryDetailB">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="trade-row">
+                                        <span class="trade-label">Stop Loss</span>
+                                        <div class="trade-value">
+                                            <p class="trade-price red" id="stopLossB">$-</p>
+                                            <p class="trade-detail" id="slDetailB">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="trade-row">
+                                        <span class="trade-label">Take Profit 1</span>
+                                        <div class="trade-value">
+                                            <p class="trade-price green" id="takeProfit1B">$-</p>
+                                            <p class="trade-detail" id="tp1DetailB">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="trade-row">
+                                        <span class="trade-label">Take Profit 2</span>
+                                        <div class="trade-value">
+                                            <p class="trade-price green" id="takeProfit2B">$-</p>
+                                            <p class="trade-detail" id="tp2DetailB">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="trade-strategy">
+                                        <p class="trade-strategy-title">Strategy</p>
+                                        <p class="trade-strategy-text" id="strategyTextB">-</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
